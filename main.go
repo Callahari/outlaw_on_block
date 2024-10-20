@@ -64,7 +64,9 @@ func main() {
 	cars := []*car.Car{}
 	taxiSrc, _, _ := image.Decode(bytes.NewReader(res.Car50Sprite))
 	taxi := ebiten.NewImageFromImage(taxiSrc)
-	cars = append(cars, car.NewCar(taxi))
+	c := car.NewCar(taxi)
+	c.Rotation = 90
+	cars = append(cars, c)
 
 	game.Cars = cars
 	if err := ebiten.RunGame(game); err != nil {

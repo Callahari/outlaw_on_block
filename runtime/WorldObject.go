@@ -6,4 +6,5 @@ type WorldObject interface {
 	GetType() string
 	GetAnimation() *animation.Animation
 	GetPosition() struct{ X, Y float64 }
+	GetRotation() int
 }

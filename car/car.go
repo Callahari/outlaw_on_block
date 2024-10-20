@@ -12,15 +12,21 @@ const (
 	CarUp
 	CarLeft
 	CarRight
+	DefaultSpeed          = 10.5
+	DefaultBackwartsSpeed = 5.5
 )
 
 type CarDirection int
 
 type Car struct {
-	Type      string
-	Position  struct{ X, Y float64 }
-	Direction CarDirection
-	Animation *animation.Animation
+	Type           string
+	Position       struct{ X, Y float64 }
+	Direction      CarDirection
+	Speed          float64
+	BackwardsSpeed float64
+	IsMoving       bool
+	Rotation       int
+	Animation      *animation.Animation
 }
 
 func NewCar(spriteImage *ebiten.Image) *Car {
@@ -28,7 +34,8 @@ func NewCar(spriteImage *ebiten.Image) *Car {
 	c.Type = "car"
 	c.Position.X = 150
 	c.Position.Y = 150
-	c.Direction = CarLeft
+	c.Speed = DefaultSpeed
+	c.BackwardsSpeed = DefaultBackwartsSpeed
 	c.Animation = &animation.Animation{}
 	c.Animation.AnimationName = "normal"
 	c.Animation.Sprites = make(map[string][]*ebiten.Image)
@@ -47,6 +54,12 @@ func (c *Car) GetAnimation() *animation.Animation {
 func (c *Car) GetPosition() struct{ X, Y float64 } {
 	return c.Position
 }
+func (c *Car) GetRotation() int {
+	return c.Rotation
+}
+func (c *Car) GetDirection() CarDirection {
+	return c.Direction
+}
 func (c *Car) Update() error {
 	return nil
 }
@@ -55,29 +68,11 @@ func (c *Car) Draw(screen *ebiten.Image) {
 	currentSprite := c.Animation.Sprites[c.Animation.AnimationName][c.Animation.SpriteIdx]
 	w, h := float64(currentSprite.Bounds().Dx()), float64(currentSprite.Bounds().Dy())
 	op := &ebiten.DrawImageOptions{}
-	switch c.Direction {
-	case 0:
-		{
-		}
-	case 1:
-		{
-			op.GeoM.Translate(-w/2, -h/2)
-			op.GeoM.Rotate(math.Pi)
-			op.GeoM.Translate(w/2, h/2)
-		}
-	case 2:
-		{
-			op.GeoM.Translate(-w/2, -h/2)
-			op.GeoM.Rotate(float64(-90%360) * 2 * math.Pi / 360)
-			op.GeoM.Translate(w/2, h/2)
-		}
-	case 3:
-		{
-			op.GeoM.Translate(-w/2, -h/2)
-			op.GeoM.Rotate(float64(90%360) * 2 * math.Pi / 360)
-			op.GeoM.Translate(w/2, h/2)
-		}
-	}
+
+	op.GeoM.Translate(-w/2, -h/2)
+	op.GeoM.Rotate(float64(c.Rotation%360) * 2 * math.Pi / 360)
+	op.GeoM.Translate(w/2, h/2)
+
 	op.GeoM.Translate(float64(c.Position.X), float64(c.Position.Y))
 	screen.DrawImage(currentSprite, op)
 }

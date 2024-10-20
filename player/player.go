@@ -18,6 +18,9 @@ const (
 	PlayerUp
 	PlayerRight
 	PlayerLeft
+
+	DefaultSpeed          = 5.5
+	DefaultBackwartsSpeed = 2.5
 )
 
 var (
@@ -33,7 +36,9 @@ type Player struct {
 	Rotation             int
 	Show                 bool
 	Speed                float64
+	BackwartsSpeed       float64
 	Type                 string
+	UpdateDivider        int
 	FirstCollisionIgnore bool
 	InFrontOfCar         *car.Car
 	InCar                *car.Car
@@ -54,11 +59,12 @@ func init() {
 
 func NewPlayer() *Player {
 	p := &Player{
-		Direction: PlayerDown,
-		Show:      true,
-		Position:  struct{ X, Y float64 }{100, 100},
-		Speed:     5.5,
-		Type:      "player",
+		Direction:     PlayerDown,
+		Show:          true,
+		Position:      struct{ X, Y float64 }{100, 100},
+		Speed:         5.5,
+		Type:          "player",
+		UpdateDivider: 5,
 	}
 	s := []*ebiten.Image{}
 	for y := 0; y < ebitenImage.Bounds().Size().Y/16; y++ {
@@ -87,18 +93,24 @@ func (p *Player) GetPosition() struct{ X, Y float64 } {
 
 func (p *Player) move() {
 	p.Animation.UpdateCounter++
-	if p.Animation.UpdateCounter%5 == 0 {
+	if p.Animation.UpdateCounter%p.UpdateDivider == 0 {
 		oldPosition := p.Position
 		p.Animation.SpriteIdx++
 		switch p.Direction {
 		case PlayerUp:
+			if p.InCar != nil {
+				p.InCar.IsMoving = true
+			}
 			radians := float64(p.Rotation+90) * (math.Pi / 180)
 			p.Position.X += p.Speed * math.Cos(radians)
 			p.Position.Y += p.Speed * math.Sin(radians)
 		case PlayerDown:
+			if p.InCar != nil {
+				p.InCar.IsMoving = true
+			}
 			radians := float64(p.Rotation+90) * (math.Pi / 180)
-			p.Position.X -= p.Speed * math.Cos(radians)
-			p.Position.Y -= p.Speed * math.Sin(radians)
+			p.Position.X -= p.BackwartsSpeed * math.Cos(radians)
+			p.Position.Y -= p.BackwartsSpeed * math.Sin(radians)
 
 		case PlayerRight:
 			p.Rotation += 1
@@ -107,12 +119,13 @@ func (p *Player) move() {
 			}
 		case PlayerLeft:
 			p.Rotation -= 1
-			if p.Rotation < 0 {
-				p.Rotation = 359
+			if p.Rotation > 359 {
+				p.Rotation = 0
 			}
 		}
 		if p.InCar != nil {
 			p.InCar.Position = p.Position
+			p.InCar.Rotation = p.Rotation
 		}
 		if p.detectCollision() {
 			p.Position = oldPosition
@@ -140,7 +153,7 @@ func (p *Player) detectCollision() bool {
 			int(WorldObject.GetPosition().X)+WCOSprite.Bounds().Dx(),
 			int(WorldObject.GetPosition().Y)+WCOSprite.Bounds().Dy(),
 		)
-		rotatedRect := runtime.RotateRect(WCORect, float64(90%360)*2*math.Pi/360)
+		rotatedRect := runtime.RotateRect(WCORect, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
 		if currentPosBounds.Overlaps(rotatedRect) {
 			if WorldObject.GetType() == "car" {
 				p.InFrontOfCar = WorldObject.(*car.Car)
@@ -154,31 +167,55 @@ func (p *Player) detectCollision() bool {
 
 func (p *Player) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
-		p.Speed = 5.5
+
 		p.Direction = PlayerUp
 		p.move()
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
-		p.Speed = 2.5
+
 		p.Direction = PlayerDown
 		p.move()
 	} else {
 		p.Animation.UpdateCounter = 0
+		if p.InCar != nil {
+			p.InCar.IsMoving = false
+		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
-		p.Rotation += 3
+		if p.InCar != nil {
+			if p.InCar.IsMoving {
+				p.Rotation += 3
+			}
+		} else {
+			p.Rotation += 3
+		}
 	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
-		p.Rotation -= 3
+		if p.InCar != nil {
+			if p.InCar.IsMoving {
+				p.Rotation -= 3
+			}
+		} else {
+			p.Rotation -= 3
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		if p.InFrontOfCar != nil {
 			p.Show = false
 			p.InCar = p.InFrontOfCar
 			p.InFrontOfCar = nil
+			p.Rotation = p.InCar.Rotation
+			p.Speed = p.InCar.Speed
+			p.BackwartsSpeed = p.InCar.BackwardsSpeed
+			p.UpdateDivider = 1
+			log.Println("enter the car")
 		} else {
 			if p.InCar != nil {
 				p.Show = true
 				p.InCar = nil
 				p.InFrontOfCar = p.InFrontOfCar
+				p.Speed = DefaultSpeed
+				p.BackwartsSpeed = DefaultBackwartsSpeed
+				p.UpdateDivider = 5
+				log.Println("get out of the car")
 			}
 		}
 	}
