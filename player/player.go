@@ -192,8 +192,8 @@ func (p *Player) detectCollision() bool {
 			int(WorldObject.GetPosition().Y)+WCOSprite.Bounds().Dy())
 
 		carRectTrans := carRect.Add(image.Point{int(-runtime.ViewPort.X), int(-runtime.ViewPort.Y)})
-		//rotatedRect := runtime.RotateRect(WCORect, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
-		if playerRectTrans.Overlaps(carRectTrans) {
+		rotatedRect := runtime.RotateRect(carRectTrans, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
+		if playerRectTrans.Overlaps(rotatedRect) {
 			if WorldObject.GetType() == "car" {
 				p.InFrontOfCar = WorldObject.(*car.Car)
 			}
