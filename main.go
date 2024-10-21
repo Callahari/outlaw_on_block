@@ -70,6 +70,7 @@ func main() {
 	cars = append(cars, c)
 	game.Cars = cars
 	game.Scene = game2.GameScene_Menu
+	game.Editor = nil
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

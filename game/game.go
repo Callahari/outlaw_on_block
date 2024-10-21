@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"outlaw_on_block/car"
+	"outlaw_on_block/editor"
 	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
@@ -33,6 +34,7 @@ type Game struct {
 		EditorTriggered bool
 		ExitTriggered   bool
 	}
+	Editor *editor.Editor
 }
 
 func (g *Game) Update() error {
@@ -59,6 +61,12 @@ func (g *Game) Update() error {
 
 		if pointer.Overlaps(EditorButtonRect) {
 			g.Menu.EditorTriggered = true
+			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+				if g.Editor == nil {
+					g.Editor = editor.NewEditor()
+				}
+				g.Scene = GameScene_Editor
+			}
 		} else {
 			g.Menu.EditorTriggered = false
 		}
@@ -79,6 +87,7 @@ func (g *Game) Update() error {
 			c.Update()
 		}
 	case GameScene_Editor:
+		g.Editor.Update()
 	}
 	return nil
 }
@@ -109,6 +118,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			c.Draw(screen)
 		}
 	case GameScene_Editor:
+		g.Editor.Draw(screen)
 	}
 
 	msg := fmt.Sprintf(`TPS: %0.2f
