@@ -7,6 +7,7 @@ import (
 	"log"
 	"outlaw_on_block/car"
 	"outlaw_on_block/game"
+	game2 "outlaw_on_block/game"
 	"outlaw_on_block/player"
 	"outlaw_on_block/res"
 	"outlaw_on_block/tiles"
@@ -67,8 +68,8 @@ func main() {
 	c := car.NewCar(taxi)
 	c.Rotation = 90
 	cars = append(cars, c)
-
 	game.Cars = cars
+	game.Scene = game2.GameScene_Menu
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

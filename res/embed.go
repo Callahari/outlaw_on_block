@@ -17,4 +17,10 @@ var (
 	/////CARS
 	//go:embed car/GTA2_CAR_50.png
 	Car50Sprite []byte
+
+	//FONT
+	//go:embed font/font.png
+	OOBFont []byte
+	//go:embed font/font_hover.png
+	OOBFontHover []byte
 )
