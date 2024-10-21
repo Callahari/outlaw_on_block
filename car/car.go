@@ -74,8 +74,7 @@ func (c *Car) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(-w/2, -h/2)
 	op.GeoM.Rotate(float64(c.Rotation%360) * 2 * math.Pi / 360)
 	op.GeoM.Translate(w/2, h/2)
-
-	op.GeoM.Translate(float64(c.Position.X), float64(c.Position.Y))
+	op.GeoM.Translate(float64(c.Position.X)+runtime.ViewPort.X, float64(c.Position.Y)+runtime.ViewPort.Y)
 	screen.DrawImage(currentSprite, op)
 }
 

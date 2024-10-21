@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	screenWidth  = 800
-	screenHeight = 600
+	screenWidth  = 1920
+	screenHeight = 1080
 )
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Sprites (Ebitengine Demo)")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Outlaw on Block")
 	ebiten.SetWindowResizable(true)
 
 	timg, _, _ := image.Decode(bytes.NewReader(res.Tile0Sprite))

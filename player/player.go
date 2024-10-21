@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"image"
+	"image/color"
 	"log"
 	"math"
 	"outlaw_on_block/animation"
@@ -176,21 +177,23 @@ func (p *Player) detectCollision() bool {
 	if !p.Show {
 		return false
 	}
-	currentPosBounds := image.Rect(
-		int(p.Position.X+(p.Speed/2)),
-		int(p.Position.Y+(p.Speed/2)),
-		p.GetAnimation().Sprites[p.Animation.AnimationName][p.Animation.SpriteIdx].Bounds().Dx()+int(p.Position.X+(p.Speed/2)),
-		p.GetAnimation().Sprites[p.Animation.AnimationName][p.Animation.SpriteIdx].Bounds().Dy()+int(p.Position.Y+(p.Speed/2)))
+	playerRect := image.Rect(
+		int(p.Position.X),
+		int(p.Position.Y),
+		int(p.Position.X+18),
+		int(p.Position.Y+16))
+	playerRectTrans := playerRect.Add(image.Point{int(-runtime.ViewPort.X), int(-runtime.ViewPort.Y)})
 	for _, WorldObject := range runtime.WorldCollisionObjects {
 		WCOSprite := WorldObject.GetAnimation().Sprites[WorldObject.GetAnimation().AnimationName][WorldObject.GetAnimation().SpriteIdx]
-		WCORect := image.Rect(
+		carRect := image.Rect(
 			int(WorldObject.GetPosition().X),
 			int(WorldObject.GetPosition().Y),
 			int(WorldObject.GetPosition().X)+WCOSprite.Bounds().Dx(),
-			int(WorldObject.GetPosition().Y)+WCOSprite.Bounds().Dy(),
-		)
-		rotatedRect := runtime.RotateRect(WCORect, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
-		if currentPosBounds.Overlaps(rotatedRect) {
+			int(WorldObject.GetPosition().Y)+WCOSprite.Bounds().Dy())
+
+		carRectTrans := carRect.Add(image.Point{int(-runtime.ViewPort.X), int(-runtime.ViewPort.Y)})
+		//rotatedRect := runtime.RotateRect(WCORect, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
+		if playerRectTrans.Overlaps(carRectTrans) {
 			if WorldObject.GetType() == "car" {
 				p.InFrontOfCar = WorldObject.(*car.Car)
 			}
@@ -202,6 +205,8 @@ func (p *Player) detectCollision() bool {
 }
 
 func (p *Player) Update() error {
+	runtime.ViewPort.X = 1920/2 - p.Position.X
+	runtime.ViewPort.Y = 1080/2 - p.Position.Y
 	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
 		p.Direction = PlayerUp
 		if p.InCar != nil {
@@ -211,6 +216,8 @@ func (p *Player) Update() error {
 			} else if p.InCar.Direction == car.CarBackwards {
 				p.InCar.Direction = car.CarForward
 			}
+		} else {
+			p.Speed = DefaultSpeed
 		}
 		p.move()
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
@@ -222,6 +229,8 @@ func (p *Player) Update() error {
 			} else if p.InCar.Direction == car.CarForward {
 				p.InCar.Direction = car.CarBackwards
 			}
+		} else {
+			p.Speed = -DefaultBackwartsSpeed
 		}
 		p.move()
 	} else {
@@ -289,14 +298,33 @@ car.Direction: %d
 	if !p.Show {
 		return
 	}
+
 	currentSprite := p.Animation.Sprites[p.Animation.AnimationName][p.Animation.SpriteIdx]
 	w, h := float64(currentSprite.Bounds().Size().X), float64(currentSprite.Bounds().Size().Y)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-w/2, -h/2)
 	op.GeoM.Rotate(float64(p.Rotation%360) * 2 * math.Pi / 360)
 	op.GeoM.Translate(w/2, h/2)
-	op.GeoM.Translate(p.Position.X, p.Position.Y)
+	//op.GeoM.Translate(p.Position.X-cameraPos.X, p.Position.Y-cameraPos.Y)
+	op.GeoM.Translate(1920/2, 1080/2)
 	screen.DrawImage(currentSprite, op)
+
+	////////////////DEBUG SECTION
+	for _, WorldObject := range runtime.WorldCollisionObjects {
+		WCOSprite := WorldObject.GetAnimation().Sprites[WorldObject.GetAnimation().AnimationName][WorldObject.GetAnimation().SpriteIdx]
+		WCORect := image.Rect(
+			int(WorldObject.GetPosition().X)-int(runtime.ViewPort.X),
+			int(WorldObject.GetPosition().Y)-int(runtime.ViewPort.Y),
+			int(WorldObject.GetPosition().X)+WCOSprite.Bounds().Dx()-int(runtime.ViewPort.X),
+			int(WorldObject.GetPosition().Y)+WCOSprite.Bounds().Dy()-int(runtime.ViewPort.Y),
+		)
+		//rotatedRect := runtime.RotateRect(WCORect, float64(WorldObject.GetRotation()%360)*2*math.Pi/360)
+		ni := ebiten.NewImage(WCOSprite.Bounds().Dx(), WCOSprite.Bounds().Dy())
+		ni.Fill(color.RGBA{255, 0, 255, 128})
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(100, 100)
+		screen.DrawImage(ni.SubImage(WCORect).(*ebiten.Image), op)
+	}
 
 }
 

@@ -7,6 +7,7 @@ import (
 	"math"
 	"outlaw_on_block/car"
 	"outlaw_on_block/player"
+	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
 )
 
@@ -36,7 +37,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(-w/2, -h/2)
 		op.GeoM.Rotate(float64(t.Rotation%360.0) * 2 * math.Pi / 360)
 		op.GeoM.Translate(w/2, h/2)
-		op.GeoM.Translate(float64(t.Pos.X), float64(t.Pos.Y))
+		op.GeoM.Translate(float64(t.Pos.X)+runtime.ViewPort.X, float64(t.Pos.Y)+runtime.ViewPort.Y)
 		screen.DrawImage(t.TileImage, op)
 	}
 	//Draw Player
@@ -52,5 +53,5 @@ FPS: %0.2f
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return outsideWidth / 2, outsideHeight / 2
+	return outsideWidth, outsideHeight
 }
