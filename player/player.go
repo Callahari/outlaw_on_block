@@ -2,7 +2,9 @@ package player
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"image"
 	"log"
@@ -94,6 +96,37 @@ func (p *Player) GetPosition() struct{ X, Y float64 } {
 func (p *Player) move() {
 	p.Animation.UpdateCounter++
 	if p.Animation.UpdateCounter%p.UpdateDivider == 0 {
+		if p.InCar != nil {
+			if p.InCar.Accelerating {
+				switch p.InCar.Direction {
+				case car.CarForward:
+					p.InCar.CurrentSpeed = p.InCar.CurrentSpeed + car.Velocity
+					if p.InCar.CurrentSpeed > car.MaxSpeed {
+						p.InCar.CurrentSpeed = car.MaxSpeed
+					}
+				case car.CarBackwards:
+					p.InCar.CurrentSpeed -= car.Velocity
+					if p.InCar.CurrentSpeed < -(car.MaxSpeed / 2) {
+						p.InCar.CurrentSpeed = -(car.MaxSpeed / 2)
+					}
+				}
+
+			} else {
+				if p.InCar.CurrentSpeed > 0 {
+					p.InCar.CurrentSpeed -= car.Velocity
+					if p.InCar.CurrentSpeed < 0 {
+						p.InCar.CurrentSpeed = 0
+						p.InCar.Direction = car.CarNeutral
+					}
+				} else {
+					p.InCar.CurrentSpeed += car.Velocity
+					if p.InCar.CurrentSpeed > 0 {
+						p.InCar.CurrentSpeed = 0
+						p.InCar.Direction = car.CarNeutral
+					}
+				}
+			}
+		}
 		oldPosition := p.Position
 		p.Animation.SpriteIdx++
 		switch p.Direction {
@@ -106,11 +139,13 @@ func (p *Player) move() {
 			p.Position.Y += p.Speed * math.Sin(radians)
 		case PlayerDown:
 			if p.InCar != nil {
-				p.InCar.IsMoving = true
+				if p.InCar.CurrentSpeed > 0 {
+					p.InCar.CurrentSpeed -= car.Velocity * 2
+				}
 			}
 			radians := float64(p.Rotation+90) * (math.Pi / 180)
-			p.Position.X -= p.BackwartsSpeed * math.Cos(radians)
-			p.Position.Y -= p.BackwartsSpeed * math.Sin(radians)
+			p.Position.X += p.Speed * math.Cos(radians)
+			p.Position.Y += p.Speed * math.Sin(radians)
 
 		case PlayerRight:
 			p.Rotation += 1
@@ -126,6 +161,7 @@ func (p *Player) move() {
 		if p.InCar != nil {
 			p.InCar.Position = p.Position
 			p.InCar.Rotation = p.Rotation
+			p.Speed = p.InCar.CurrentSpeed
 		}
 		if p.detectCollision() {
 			p.Position = oldPosition
@@ -167,22 +203,37 @@ func (p *Player) detectCollision() bool {
 
 func (p *Player) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
-
 		p.Direction = PlayerUp
+		if p.InCar != nil {
+			p.InCar.Accelerating = true
+			if p.InCar.Direction == car.CarNeutral {
+				p.InCar.Direction = car.CarForward
+			} else if p.InCar.Direction == car.CarBackwards {
+				p.InCar.Direction = car.CarForward
+			}
+		}
 		p.move()
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
-
 		p.Direction = PlayerDown
+		if p.InCar != nil {
+			p.InCar.Accelerating = true
+			if p.InCar.Direction == car.CarNeutral {
+				p.InCar.Direction = car.CarBackwards
+			} else if p.InCar.Direction == car.CarForward {
+				p.InCar.Direction = car.CarBackwards
+			}
+		}
 		p.move()
 	} else {
 		p.Animation.UpdateCounter = 0
 		if p.InCar != nil {
-			p.InCar.IsMoving = false
+			p.InCar.Accelerating = false
+			p.move()
 		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
 		if p.InCar != nil {
-			if p.InCar.IsMoving {
+			if p.InCar.CurrentSpeed != 0 {
 				p.Rotation += 3
 			}
 		} else {
@@ -190,7 +241,7 @@ func (p *Player) Update() error {
 		}
 	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 		if p.InCar != nil {
-			if p.InCar.IsMoving {
+			if p.InCar.CurrentSpeed != 0 {
 				p.Rotation -= 3
 			}
 		} else {
@@ -203,7 +254,7 @@ func (p *Player) Update() error {
 			p.InCar = p.InFrontOfCar
 			p.InFrontOfCar = nil
 			p.Rotation = p.InCar.Rotation
-			p.Speed = p.InCar.Speed
+			p.Speed = p.InCar.CurrentSpeed
 			p.BackwartsSpeed = p.InCar.BackwardsSpeed
 			p.UpdateDivider = 1
 			log.Println("enter the car")
@@ -223,6 +274,18 @@ func (p *Player) Update() error {
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
+	inCarStr := "false"
+	carDirection := 0
+	if p.InCar != nil {
+		inCarStr = "true"
+		carDirection = int(p.InCar.Direction)
+	}
+	msg := fmt.Sprintf(`
+inCar: %s
+Speed: %f
+car.Direction: %d
+`, inCarStr, p.Speed, carDirection)
+	ebitenutil.DebugPrintAt(screen, msg, 0, 30)
 	if !p.Show {
 		return
 	}
@@ -234,6 +297,7 @@ func (p *Player) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(w/2, h/2)
 	op.GeoM.Translate(p.Position.X, p.Position.Y)
 	screen.DrawImage(currentSprite, op)
+
 }
 
 func (g *Player) Layout(outsideWidth, outsideHeight int) (int, int) {

@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	CarDown = iota
-	CarUp
-	CarLeft
-	CarRight
-	DefaultSpeed          = 10.5
+	CarForward = iota
+	CarBackwards
+	CarNeutral
+	Velocity              = 0.15
+	MaxSpeed              = 10.5
 	DefaultBackwartsSpeed = 5.5
 )
 
@@ -22,10 +22,11 @@ type Car struct {
 	Type           string
 	Position       struct{ X, Y float64 }
 	Direction      CarDirection
-	Speed          float64
+	CurrentSpeed   float64
 	BackwardsSpeed float64
 	IsMoving       bool
 	Rotation       int
+	Accelerating   bool
 	Animation      *animation.Animation
 }
 
@@ -34,7 +35,8 @@ func NewCar(spriteImage *ebiten.Image) *Car {
 	c.Type = "car"
 	c.Position.X = 150
 	c.Position.Y = 150
-	c.Speed = DefaultSpeed
+	c.CurrentSpeed = 0
+	c.Direction = CarNeutral
 	c.BackwardsSpeed = DefaultBackwartsSpeed
 	c.Animation = &animation.Animation{}
 	c.Animation.AnimationName = "normal"
