@@ -23,4 +23,8 @@ var (
 	OOBFont []byte
 	//go:embed font/font_hover.png
 	OOBFontHover []byte
+
+	//UI elements
+	//go:embed ui/arrows.png
+	UIArrows []byte
 )
