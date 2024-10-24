@@ -3,7 +3,9 @@ package editor
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
+	"image/color"
 	"log"
 	"math"
 	"os"
@@ -18,6 +20,7 @@ type Editor struct {
 	startTile  int
 	ArrowRight string
 	ArrowLeft  string
+	Selected   *tiles.Tile
 }
 
 func NewEditor() *Editor {
@@ -90,6 +93,44 @@ func (e *Editor) Update() error {
 		e.ArrowLeft = "green"
 	}
 
+	///SELECT item from Menu
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		if e.Selected != nil {
+			e.Selected = nil
+		}
+	}
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		log.Println("Mouse Clicked")
+		cnt := 0
+		row := 0
+		topOffset := 8
+		targetRect := image.Rectangle{}
+		currentMousePosX, currentMousePosY = ebiten.CursorPosition()
+		for idx, t := range e.Tiles {
+			if idx < e.startTile {
+				continue
+			}
+			cnt++
+			if row == 1 {
+				targetRect = image.Rect(cnt*64, (row*64)+topOffset, (cnt*64)+64, (row*64)+64+topOffset)
+			} else {
+				targetRect = image.Rect(cnt*64, row*64, (cnt*64)+64, (row*64)+64)
+			}
+			if cursorTrigger.In(targetRect) {
+				log.Printf("idx: %v; cnt: %v; row: %v;img: %s \n", idx, cnt, row, t.Name)
+				e.Selected = t
+				break
+			}
+
+			if cnt == 3 {
+				cnt = 0
+				row++
+				if row == 15 {
+					break
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -99,13 +140,22 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 
 	cnt := 0
 	row := 0
+	topOffset := 8
 	for idx, t := range e.Tiles {
 		if idx < e.startTile {
 			continue
 		}
 		cnt++
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(cnt*64), float64(row*64))
+		if row == 1 {
+			op.GeoM.Translate(float64(cnt*64), float64(row*64))
+			vector.DrawFilledRect(screen, float32(cnt*64), float32(row*64), 64, 64, color.RGBA{0, 255, 0, 64}, true)
+
+		} else {
+			op.GeoM.Translate(float64(cnt*64), float64((row*64)+topOffset))
+			vector.DrawFilledRect(screen, float32(cnt*64), float32((row*64)+topOffset), 64, 64, color.RGBA{0, 255, 0, 64}, true)
+
+		}
 		screen.DrawImage(t.TileImage, op)
 		if cnt == 3 {
 			cnt = 0
@@ -134,6 +184,15 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	op.GeoM.Scale(3, 3)
 	op.GeoM.Translate(228, 995)
 	screen.DrawImage(aL, op)
+
+	//Draw if item selected
+	if e.Selected != nil {
+		op := &ebiten.DrawImageOptions{}
+		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
+		op.GeoM.Translate(float64(currentMousePosX)-32, float64(currentMousePosY)-32)
+		op.ColorScale.ScaleAlpha(0.5)
+		screen.DrawImage(e.Selected.TileImage, op)
+	}
 
 }
 func (e *Editor) Layout(outsideWidth, outsideHeight int) (int, int) {
