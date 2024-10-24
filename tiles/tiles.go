@@ -6,6 +6,7 @@ import (
 )
 
 type Tile struct {
+	ID           string
 	Name         string
 	TileImage    *ebiten.Image
 	Pos          struct{ X, Y int }
