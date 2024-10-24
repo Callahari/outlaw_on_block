@@ -21,7 +21,7 @@ const (
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Outlaw on Block")
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 
 	timg, _, _ := image.Decode(bytes.NewReader(res.Tile0Sprite))
 	timg1, _, _ := image.Decode(bytes.NewReader(res.Tile276Sprite))
