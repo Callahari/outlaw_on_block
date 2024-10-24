@@ -21,6 +21,7 @@ type Editor struct {
 	ArrowRight string
 	ArrowLeft  string
 	Selected   *tiles.Tile
+	MapItems   []*tiles.Tile
 }
 
 func NewEditor() *Editor {
@@ -60,6 +61,8 @@ func NewEditor() *Editor {
 func (e *Editor) Update() error {
 	currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 	cursorTrigger := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
+	// 	vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
+	mapRect := image.Rect(261, 96, 1654+261, 979+96)
 
 	arrowRightTrigger := image.Rect(50, 1010, 105, 1050)
 	if cursorTrigger.In(arrowRightTrigger) {
@@ -92,7 +95,30 @@ func (e *Editor) Update() error {
 	} else {
 		e.ArrowLeft = "green"
 	}
-
+	//Click on map
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		if cursorTrigger.In(mapRect) {
+			log.Println("Mouse Clicked on map")
+			if e.Selected != nil {
+				mapTile := e.Selected
+				mapTile.Pos.X = int(currentMousePosX - 32)
+				mapTile.Pos.Y = int(currentMousePosY - 32)
+				e.MapItems = append(e.MapItems, mapTile)
+				e.Selected = nil
+			} else {
+				//Grep again
+				for idx, t := range e.MapItems {
+					triggerRect := image.Rect(t.Pos.X, t.Pos.Y, t.Pos.X+64, t.Pos.Y+64)
+					if cursorTrigger.In(triggerRect) {
+						e.Selected = t
+						e.MapItems = append(e.MapItems[:idx], e.MapItems[idx+1:]...)
+						break
+					}
+				}
+			}
+			return nil
+		}
+	}
 	///SELECT item from Menu
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
 		if e.Selected != nil {
@@ -193,7 +219,14 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 		op.ColorScale.ScaleAlpha(0.5)
 		screen.DrawImage(e.Selected.TileImage, op)
 	}
-
+	//Draw MapTiles
+	for _, m := range e.MapItems {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(m.Pos.X), float64(m.Pos.Y))
+		screen.DrawImage(m.TileImage, op)
+	}
+	//map
+	//vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
 }
 func (e *Editor) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
