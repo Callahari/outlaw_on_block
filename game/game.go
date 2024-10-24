@@ -38,6 +38,10 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	//Debug exit
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		return errors.New("Exit")
+	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 		log.Println(currentMousePosX, currentMousePosY)
