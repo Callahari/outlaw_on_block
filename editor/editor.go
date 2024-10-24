@@ -50,7 +50,6 @@ func NewEditor() *Editor {
 
 		if info.Mode().IsRegular() && filepath.Ext(path) == ".png" {
 			// PNG-Datei gefunden, lese die Datei ein
-			log.Println("Found file: ", path)
 			file, err := os.Open(path)
 			if err != nil {
 				return err
@@ -76,6 +75,13 @@ func NewEditor() *Editor {
 func (e *Editor) Update() error {
 	if e.Modal != nil {
 		if e.Modal.IsClosed() {
+			if e.Modal.GetTileMap() != nil {
+				e.MapItems = e.Modal.GetTileMap()
+			}
+			e.Modal = nil
+			return nil
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			e.Modal = nil
 			return nil
 		}
@@ -89,14 +95,19 @@ func (e *Editor) Update() error {
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
 
 	//Click on Save 	runtime.DrawString("Save Map", 1, 1700, 10, false, screen)
-	savBtnRect := image.Rect(1700, 10, 1860, 32)
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && cursorTrigger.In(savBtnRect) {
+	saveBtnRect := image.Rect(1700, 10, 1860, 32)
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && cursorTrigger.In(saveBtnRect) {
 		if e.MapItems == nil || len(e.MapItems) == 0 {
 			log.Println("TileMap is empty, nothing to save.")
 		} else {
 			m := &modals.EsaveMap{Name: "Foo", TileMap: e.MapItems}
 			e.Modal = m
 		}
+	}
+	loadBtnRect := image.Rect(1707, 38, 1857, 58)
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && cursorTrigger.In(loadBtnRect) {
+		m := modals.NewEloadMapModal("eladap", nil)
+		e.Modal = m
 	}
 
 	//Scroll map
