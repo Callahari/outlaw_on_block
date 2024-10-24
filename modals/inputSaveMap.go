@@ -46,7 +46,11 @@ func (this *InputSaveMap) Update() error {
 				log.Println("Nope .... not filename was entered")
 				return errors.New("Filename was empty")
 			}
-			f, _ := os.Create(this.FileName + ".json")
+			f, err := os.Create("save/" + this.FileName + ".json")
+			if err != nil {
+				log.Printf("Error creating file: %v", err)
+				return err
+			}
 			defer f.Close()
 			mapAsByte, _ := json.Marshal(this.TileMap)
 			f.Write(mapAsByte)
