@@ -94,7 +94,7 @@ func (e *Editor) Update() error {
 		if e.MapItems == nil || len(e.MapItems) == 0 {
 			log.Println("TileMap is empty, nothing to save.")
 		} else {
-			m := &modals.InputSaveMap{Name: "Foo", TileMap: e.MapItems}
+			m := &modals.EsaveMap{Name: "Foo", TileMap: e.MapItems}
 			e.Modal = m
 		}
 	}

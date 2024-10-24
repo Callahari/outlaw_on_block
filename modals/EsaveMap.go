@@ -14,7 +14,7 @@ import (
 	"outlaw_on_block/tiles"
 )
 
-type InputSaveMap struct {
+type EsaveMap struct {
 	Name        string
 	HoveredChar string
 	FileName    string
@@ -23,15 +23,15 @@ type InputSaveMap struct {
 	Closed      bool
 }
 
-func (this *InputSaveMap) IsClosed() bool {
+func (this *EsaveMap) IsClosed() bool {
 	return this.Closed
 }
 
-func (this *InputSaveMap) GetName() string {
+func (this *EsaveMap) GetName() string {
 	return this.Name
 }
 
-func (this *InputSaveMap) Update() error {
+func (this *EsaveMap) Update() error {
 	mouseCursorPosX, mouseCursorPosY := ebiten.CursorPosition()
 	mouseCursorTrigger := image.Rect(mouseCursorPosX, mouseCursorPosY, mouseCursorPosX+1, mouseCursorPosY+1)
 	inputRect := image.Rect(592, 281, 1311, 387)
@@ -81,7 +81,7 @@ func (this *InputSaveMap) Update() error {
 	return nil
 }
 
-func (this *InputSaveMap) Draw(screen *ebiten.Image) {
+func (this *EsaveMap) Draw(screen *ebiten.Image) {
 	relCoods := struct {
 		X float32
 		Y float32
@@ -120,6 +120,6 @@ func (this *InputSaveMap) Draw(screen *ebiten.Image) {
 
 }
 
-func (this *InputSaveMap) Layout(outsideWidth, outsideHeight int) (int, int) {
+func (this *EsaveMap) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
