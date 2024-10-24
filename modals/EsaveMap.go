@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
 	"image/color"
+	"image/png"
 	"log"
 	"os"
 	"outlaw_on_block/runtime"
@@ -21,6 +22,10 @@ type EsaveMap struct {
 	HoverSave   bool
 	TileMap     []tiles.Tile
 	Closed      bool
+}
+
+func (this *EsaveMap) GetTileMap() []tiles.Tile {
+	return this.TileMap
 }
 
 func (this *EsaveMap) IsClosed() bool {
@@ -46,15 +51,31 @@ func (this *EsaveMap) Update() error {
 				log.Println("Nope .... not filename was entered")
 				return errors.New("Filename was empty")
 			}
-			f, err := os.Create("save/" + this.FileName + ".json")
+			//1. Create folder named saveName
+			_ = os.Mkdir("save/"+this.FileName, 0755)
+			//2. Create inside img
+			_ = os.Mkdir("save/"+this.FileName+"/img", 0755)
+			//3. Save all tiles to <saveFolder>/img
+			for _, img := range this.TileMap {
+				f, _ := os.Create("save/" + this.FileName + "/img/" + img.ID + ".png")
+				defer f.Close()
+				png.Encode(f, img.TileImage)
+			}
+			//4. Write manifestfile
+			manifest := []tiles.Tile{}
+			for _, img := range this.TileMap {
+				img.TileImage = nil
+				manifest = append(manifest, img)
+			}
+			manifestAsByte, err := json.Marshal(manifest)
 			if err != nil {
-				log.Printf("Error creating file: %v", err)
+				this.Closed = true
 				return err
 			}
-			defer f.Close()
-			mapAsByte, _ := json.Marshal(this.TileMap)
-			f.Write(mapAsByte)
+			manifestFile, _ := os.Create("save/" + this.FileName + "/manifest.json")
+			manifestFile.Write(manifestAsByte)
 			this.Closed = true
+			return nil
 		}
 	} else {
 		this.HoverSave = false
@@ -109,7 +130,7 @@ func (this *EsaveMap) Draw(screen *ebiten.Image) {
 		cnt++
 	}
 
-	fileNameString := "Filename " + this.FileName + " json"
+	fileNameString := "Filename: " + this.FileName + ".json"
 	runtime.DrawString(fileNameString, 1, (int(relCoods.X) + 32), int(relCoods.Y)+550, false, screen)
 
 	if this.HoverSave {
