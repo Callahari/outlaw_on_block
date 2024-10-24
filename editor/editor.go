@@ -2,6 +2,7 @@ package editor
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -18,13 +19,14 @@ import (
 )
 
 type Editor struct {
-	Tiles      []*tiles.Tile
-	startTile  int
-	ArrowRight string
-	ArrowLeft  string
-	Selected   *tiles.Tile
-	MapItems   []tiles.Tile
-	Camera     struct {
+	Tiles       []*tiles.Tile
+	startTile   int
+	ArrowRight  string
+	ArrowLeft   string
+	Selected    *tiles.Tile
+	FineJustage bool
+	MapItems    []tiles.Tile
+	Camera      struct {
 		Position struct {
 			X float64
 			Y float64
@@ -39,7 +41,7 @@ func NewEditor() *Editor {
 	e.ArrowRight = "green"
 	e.ArrowLeft = "green"
 	e.Camera.ScrollSpeed = 5
-	_ = filepath.Walk("/home/callahari/Code/node-io.dev/outlaw_on_block/raw/gta2_tiles/out2", func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk("/home/callahari/Code/node-io.dev/outlaw_on_block/raw/gta2_tiles", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -59,6 +61,7 @@ func NewEditor() *Editor {
 			}
 			t := &tiles.Tile{}
 			t.Name = filepath.Base(path)
+			t.ID = uuid.New().String()
 			t.TileImage = ebiten.NewImageFromImage(img)
 
 			e.Tiles = append(e.Tiles, t)
@@ -79,13 +82,13 @@ func (e *Editor) Update() error {
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
 
 	//Scroll map
-	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+	if ebiten.IsKeyPressed(ebiten.KeyUp) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 		e.Camera.Position.Y += e.Camera.ScrollSpeed
-	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyDown) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 		e.Camera.Position.Y -= e.Camera.ScrollSpeed
-	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 		e.Camera.Position.X += e.Camera.ScrollSpeed
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 		e.Camera.Position.X -= e.Camera.ScrollSpeed
 	}
 
@@ -94,8 +97,6 @@ func (e *Editor) Update() error {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyPeriod) {
 		e.Camera.ScrollSpeed += 0.1
 	}
-
-	//
 
 	arrowRightTrigger := image.Rect(50, 1010, 105, 1050)
 	if cursorTrigger.In(arrowRightTrigger) {
@@ -128,9 +129,57 @@ func (e *Editor) Update() error {
 	} else {
 		e.ArrowLeft = "green"
 	}
+	//Disable Fine Justage Mode
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyShift) {
+		if e.FineJustage {
+			e.FineJustage = false
+			e.Selected = nil
+		}
+	}
+	//Fine Justage Mode
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && e.FineJustage {
+		change := false
+		if inpututil.IsKeyJustPressed(ebiten.KeyUp) && ebiten.IsKeyPressed(ebiten.KeyControl) {
+			e.Selected.Pos.Y -= 1
+			change = true
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) && ebiten.IsKeyPressed(ebiten.KeyControl) {
+			e.Selected.Pos.Y += 1
+			change = true
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyLeft) && ebiten.IsKeyPressed(ebiten.KeyControl) {
+			e.Selected.Pos.X -= 1
+			change = true
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) && ebiten.IsKeyPressed(ebiten.KeyControl) {
+			e.Selected.Pos.X += 1
+			change = true
+		}
+
+		if change {
+			for k, v := range e.MapItems {
+				if v.ID == e.Selected.ID {
+					e.MapItems = append(e.MapItems[:k], e.MapItems[k+1:]...)
+					e.MapItems = append(e.MapItems, *e.Selected)
+				}
+			}
+		}
+	}
 	//Click on map
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if cursorTrigger.In(mapRect) {
+			if ebiten.IsKeyPressed(ebiten.KeyControl) {
+				log.Println("Mouse Clicked on map with control")
+				for _, t := range e.MapItems {
+					triggerRect := image.Rect(t.Pos.X+int(runtime.ViewPort.X), t.Pos.Y+int(runtime.ViewPort.Y), (t.Pos.X+int(runtime.ViewPort.X))+64, (t.Pos.Y+int(runtime.ViewPort.Y))+64)
+					if cursorTrigger.In(triggerRect) {
+						if e.Selected == nil {
+							log.Println("Fine Justage from Tile")
+							e.Selected = &t
+							e.FineJustage = true
+							return nil
+						}
+					}
+				}
+				return nil
+			}
 			log.Println("Mouse Clicked on map")
 			if e.Selected != nil {
 				mouseMapOffsetX := currentMousePosX - 261
@@ -257,7 +306,7 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	screen.DrawImage(aL, op)
 
 	//Draw if item selected
-	if e.Selected != nil {
+	if e.Selected != nil && !e.FineJustage {
 		w, h := float64(e.Selected.TileImage.Bounds().Size().X), float64(e.Selected.TileImage.Bounds().Size().Y)
 
 		op := &ebiten.DrawImageOptions{}
@@ -297,8 +346,10 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	mX, mY := ebiten.CursorPosition()
 	msg = fmt.Sprintf("cursor.pos: %v %v", mX, mY)
 	ebitenutil.DebugPrintAt(screen, msg, 0, 54)
+	msg = fmt.Sprintf("fineMode: %v", e.FineJustage)
+	ebitenutil.DebugPrintAt(screen, msg, 0, 65)
 
-	yPos := 65
+	yPos := 76
 	for idx, m := range e.MapItems {
 		msg := fmt.Sprintf("MapItem: %v; Pos: %v", m, m.Pos)
 		ebitenutil.DebugPrintAt(screen, msg, 0, yPos+idx)
