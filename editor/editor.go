@@ -160,6 +160,10 @@ func (e *Editor) Update() error {
 			return nil
 		}
 	}
+	//Rotate tile
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		e.Selected.Rotation += 90
+	}
 	///SELECT item from Menu
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
 		if e.Selected != nil {
@@ -254,15 +258,29 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 
 	//Draw if item selected
 	if e.Selected != nil {
+		w, h := float64(e.Selected.TileImage.Bounds().Size().X), float64(e.Selected.TileImage.Bounds().Size().Y)
+
 		op := &ebiten.DrawImageOptions{}
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
+
+		op.GeoM.Translate(-w/2, -h/2)
+		op.GeoM.Rotate(float64(e.Selected.Rotation%360.0) * 2 * math.Pi / 360)
+		op.GeoM.Translate(w/2, h/2)
+
 		op.GeoM.Translate(float64(currentMousePosX)-32, float64(currentMousePosY)-32)
 		op.ColorScale.ScaleAlpha(0.5)
 		screen.DrawImage(e.Selected.TileImage, op)
 	}
 	//Draw MapTiles
 	for _, m := range e.MapItems {
+		w, h := float64(m.TileImage.Bounds().Size().X), float64(m.TileImage.Bounds().Size().Y)
+
 		op := &ebiten.DrawImageOptions{}
+
+		op.GeoM.Translate(-w/2, -h/2)
+		op.GeoM.Rotate(float64(m.Rotation%360.0) * 2 * math.Pi / 360)
+		op.GeoM.Translate(w/2, h/2)
+
 		op.GeoM.Translate(float64(m.Pos.X)+runtime.ViewPort.X, float64(m.Pos.Y)+runtime.ViewPort.Y)
 		//op.GeoM.Translate(float64(m.Pos.X)+e.Camera.Position.X, float64(m.Pos.Y)+e.Camera.Position.Y)
 
