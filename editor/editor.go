@@ -1,7 +1,9 @@
 package editor
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
@@ -21,7 +23,14 @@ type Editor struct {
 	ArrowRight string
 	ArrowLeft  string
 	Selected   *tiles.Tile
-	MapItems   []*tiles.Tile
+	MapItems   []tiles.Tile
+	Camera     struct {
+		Position struct {
+			X float64
+			Y float64
+		}
+		ScrollSpeed float64
+	}
 }
 
 func NewEditor() *Editor {
@@ -29,6 +38,7 @@ func NewEditor() *Editor {
 	e.startTile = 0
 	e.ArrowRight = "green"
 	e.ArrowLeft = "green"
+	e.Camera.ScrollSpeed = 5
 	_ = filepath.Walk("/home/callahari/Code/node-io.dev/outlaw_on_block/raw/gta2_tiles/out2", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -59,10 +69,33 @@ func NewEditor() *Editor {
 }
 
 func (e *Editor) Update() error {
+	//runtime.ViewPort.X = 1920/2 + e.Camera.Position.X
+	//runtime.ViewPort.Y = 1080/2 + e.Camera.Position.Y
+	runtime.ViewPort.X = 1654/2 + e.Camera.Position.X
+	runtime.ViewPort.Y = 979/2 + e.Camera.Position.Y
 	currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 	cursorTrigger := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
 	// 	vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
+
+	//Scroll map
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		e.Camera.Position.Y += e.Camera.ScrollSpeed
+	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		e.Camera.Position.Y -= e.Camera.ScrollSpeed
+	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		e.Camera.Position.X += e.Camera.ScrollSpeed
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		e.Camera.Position.X -= e.Camera.ScrollSpeed
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyComma) {
+		e.Camera.ScrollSpeed -= 0.1
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyPeriod) {
+		e.Camera.ScrollSpeed += 0.1
+	}
+
+	//
 
 	arrowRightTrigger := image.Rect(50, 1010, 105, 1050)
 	if cursorTrigger.In(arrowRightTrigger) {
@@ -100,17 +133,25 @@ func (e *Editor) Update() error {
 		if cursorTrigger.In(mapRect) {
 			log.Println("Mouse Clicked on map")
 			if e.Selected != nil {
+				mouseMapOffsetX := currentMousePosX - 261
+				mouseMapOffsetY := currentMousePosY - 96
+				log.Printf("mouseMapOffsetX: %v; mouseMapOffsetY: %v\n", mouseMapOffsetX, mouseMapOffsetY)
 				mapTile := e.Selected
-				mapTile.Pos.X = int(currentMousePosX - 32)
-				mapTile.Pos.Y = int(currentMousePosY - 32)
-				e.MapItems = append(e.MapItems, mapTile)
+				mapTile.Pos.X = mouseMapOffsetX - int(e.Camera.Position.X) - 598
+				mapTile.Pos.Y = mouseMapOffsetY - int(e.Camera.Position.Y) - 425
+				e.MapItems = append(e.MapItems, *mapTile)
+				log.Printf("place MapItem: %v; Pos: %v\n", mapTile, mapTile.Pos)
+				log.Printf("cursor.pos: %v %v\n", currentMousePosX, currentMousePosY)
+				log.Printf("runtime.ViewPort: %v\n", runtime.ViewPort)
+				log.Printf("camera.pos: %v\n", e.Camera.Position)
 				e.Selected = nil
+				return nil
 			} else {
 				//Grep again
 				for idx, t := range e.MapItems {
-					triggerRect := image.Rect(t.Pos.X, t.Pos.Y, t.Pos.X+64, t.Pos.Y+64)
+					triggerRect := image.Rect(t.Pos.X+int(runtime.ViewPort.X), t.Pos.Y+int(runtime.ViewPort.Y), (t.Pos.X+int(runtime.ViewPort.X))+64, (t.Pos.Y+int(runtime.ViewPort.Y))+64)
 					if cursorTrigger.In(triggerRect) {
-						e.Selected = t
+						e.Selected = &t
 						e.MapItems = append(e.MapItems[:idx], e.MapItems[idx+1:]...)
 						break
 					}
@@ -222,11 +263,29 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	//Draw MapTiles
 	for _, m := range e.MapItems {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(m.Pos.X), float64(m.Pos.Y))
+		op.GeoM.Translate(float64(m.Pos.X)+runtime.ViewPort.X, float64(m.Pos.Y)+runtime.ViewPort.Y)
+		//op.GeoM.Translate(float64(m.Pos.X)+e.Camera.Position.X, float64(m.Pos.Y)+e.Camera.Position.Y)
+
 		screen.DrawImage(m.TileImage, op)
 	}
 	//map
 	//vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
+
+	//Debug
+	msg := fmt.Sprintf("camera.pos: %v; camera.speed: %.2f", e.Camera.Position, e.Camera.ScrollSpeed)
+	ebitenutil.DebugPrintAt(screen, msg, 0, 32)
+	msg = fmt.Sprintf("runtime.viewport: %v", runtime.ViewPort)
+	ebitenutil.DebugPrintAt(screen, msg, 0, 43)
+	mX, mY := ebiten.CursorPosition()
+	msg = fmt.Sprintf("cursor.pos: %v %v", mX, mY)
+	ebitenutil.DebugPrintAt(screen, msg, 0, 54)
+
+	yPos := 65
+	for idx, m := range e.MapItems {
+		msg := fmt.Sprintf("MapItem: %v; Pos: %v", m, m.Pos)
+		ebitenutil.DebugPrintAt(screen, msg, 0, yPos+idx)
+		yPos += 11
+	}
 }
 func (e *Editor) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
