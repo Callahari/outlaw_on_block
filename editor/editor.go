@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"outlaw_on_block/modals"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
 	"outlaw_on_block/ui"
@@ -26,6 +27,7 @@ type Editor struct {
 	Selected    *tiles.Tile
 	FineJustage bool
 	MapItems    []tiles.Tile
+	Modal       modals.IModal
 	Camera      struct {
 		Position struct {
 			X float64
@@ -72,14 +74,30 @@ func NewEditor() *Editor {
 }
 
 func (e *Editor) Update() error {
-	//runtime.ViewPort.X = 1920/2 + e.Camera.Position.X
-	//runtime.ViewPort.Y = 1080/2 + e.Camera.Position.Y
+	if e.Modal != nil {
+		if e.Modal.IsClosed() {
+			e.Modal = nil
+			return nil
+		}
+		return e.Modal.Update()
+	}
 	runtime.ViewPort.X = 1654/2 + e.Camera.Position.X
 	runtime.ViewPort.Y = 979/2 + e.Camera.Position.Y
 	currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 	cursorTrigger := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
 	// 	vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
+
+	//Click on Save 	runtime.DrawString("Save Map", 1, 1700, 10, false, screen)
+	savBtnRect := image.Rect(1700, 10, 1860, 32)
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && cursorTrigger.In(savBtnRect) {
+		if e.MapItems == nil || len(e.MapItems) == 0 {
+			log.Println("TileMap is empty, nothing to save.")
+		} else {
+			m := &modals.InputSaveMap{Name: "Foo", TileMap: e.MapItems}
+			e.Modal = m
+		}
+	}
 
 	//Scroll map
 	if ebiten.IsKeyPressed(ebiten.KeyUp) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
@@ -331,12 +349,20 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(w/2, h/2)
 
 		op.GeoM.Translate(float64(m.Pos.X)+runtime.ViewPort.X, float64(m.Pos.Y)+runtime.ViewPort.Y)
-		//op.GeoM.Translate(float64(m.Pos.X)+e.Camera.Position.X, float64(m.Pos.Y)+e.Camera.Position.Y)
 
 		screen.DrawImage(m.TileImage, op)
 	}
+
+	//Draw Save Map
+	runtime.DrawString("Save Map", 1, 1700, 10, false, screen)
+	runtime.DrawString("Load Map", 1, 1700, 35, false, screen)
 	//map
 	//vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
+
+	//Draw Modal
+	if e.Modal != nil {
+		e.Modal.Draw(screen)
+	}
 
 	//Debug
 	msg := fmt.Sprintf("camera.pos: %v; camera.speed: %.2f", e.Camera.Position, e.Camera.ScrollSpeed)
