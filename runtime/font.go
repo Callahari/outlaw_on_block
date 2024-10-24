@@ -12,7 +12,7 @@ import (
 var (
 	OOBFontSprites      map[string]*ebiten.Image
 	OOBFontHoverSprites map[string]*ebiten.Image
-	alphabet            = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
+	Alphabet            = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 		newSpriteImage := ebiten.NewImage(25, 20)
 		op := &ebiten.DrawImageOptions{}
 		newSpriteImage.DrawImage(newEbitenImage.SubImage(image.Rect(0, y*20, 25, (y+1)*20)).(*ebiten.Image), op)
-		OOBFontSprites[alphabet[y]] = newSpriteImage
+		OOBFontSprites[Alphabet[y]] = newSpriteImage
 	}
 
 	fontSpriteAsByte, _, err = image.Decode(bytes.NewReader(res.OOBFontHover))
@@ -41,7 +41,7 @@ func init() {
 		newSpriteImage := ebiten.NewImage(25, 20)
 		op := &ebiten.DrawImageOptions{}
 		newSpriteImage.DrawImage(newEbitenImage.SubImage(image.Rect(0, y*20, 25, (y+1)*20)).(*ebiten.Image), op)
-		OOBFontHoverSprites[alphabet[y]] = newSpriteImage
+		OOBFontHoverSprites[Alphabet[y]] = newSpriteImage
 	}
 }
 
