@@ -44,6 +44,7 @@ func NewEditor() *Editor {
 				return err
 			}
 			t := &tiles.Tile{}
+			t.Name = filepath.Base(path)
 			t.TileImage = ebiten.NewImageFromImage(img)
 
 			e.Tiles = append(e.Tiles, t)
