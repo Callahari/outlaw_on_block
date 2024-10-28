@@ -50,9 +50,9 @@ func (g *Game) Update() error {
 	case GameScene_Menu:
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 		pointer := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
-		PlayButtonRect := image.Rect(30, 140, 380, 185)
-		EditorButtonRect := image.Rect(30, 190, 260, 230)
-		ExitButtonRect := image.Rect(30, 240, 245, 280)
+		PlayButtonRect := image.Rect(12, 76, 89, 93)
+		EditorButtonRect := image.Rect(12, 101, 60, 116)
+		ExitButtonRect := image.Rect(12, 125, 87, 141)
 
 		if pointer.Overlaps(PlayButtonRect) {
 			g.Menu.PlayTriggered = true
@@ -99,10 +99,10 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.Scene {
 	case GameScene_Menu:
-		runtime.DrawString("Outlaw on Block", 4, 10, 10, false, screen)
-		runtime.DrawString("Auf gehts", 2, 10, 70, g.Menu.PlayTriggered, screen)
-		runtime.DrawString("Editor", 2, 10, 95, g.Menu.EditorTriggered, screen)
-		runtime.DrawString("Weg hier", 2, 10, 120, g.Menu.ExitTriggered, screen)
+		runtime.DrawString("Outlaw on Block", 52, 10, 10, false, screen)
+		runtime.DrawString("Auf gehts", 24, 10, 70, g.Menu.PlayTriggered, screen)
+		runtime.DrawString("Editor", 24, 10, 95, g.Menu.EditorTriggered, screen)
+		runtime.DrawString("Weg hier !", 24, 10, 120, g.Menu.ExitTriggered, screen)
 	case GameScene_Play:
 		//DrawTiles
 		for _, t := range g.TilesMap {
