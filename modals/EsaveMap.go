@@ -82,7 +82,7 @@ func (this *EsaveMap) Update() error {
 	}
 
 	if mouseCursorTrigger.In(inputRect) {
-		row := 282
+		/*row := 282
 		cnt := 593
 		for idx, char := range runtime.Alphabet {
 			if idx == 18 {
@@ -97,7 +97,7 @@ func (this *EsaveMap) Update() error {
 				}
 			}
 			cnt += 41
-		}
+		}*/
 	}
 	return nil
 }
@@ -115,7 +115,7 @@ func (this *EsaveMap) Draw(screen *ebiten.Image) {
 	runtime.DrawString("Save Map", 1, (int(relCoods.X)+400)-(5*20), int(relCoods.Y)+8, false, screen)
 
 	//Draw Clickable Alphabet 18
-	row := 0
+	/*row := 0
 	cnt := 0
 	for _, char := range runtime.Alphabet {
 		if cnt == 18 {
@@ -128,7 +128,7 @@ func (this *EsaveMap) Draw(screen *ebiten.Image) {
 			runtime.DrawString(char, 2, (int(relCoods.X)-270)+(cnt*20), (int(relCoods.Y)-100)+(row*32), false, screen)
 		}
 		cnt++
-	}
+	}*/
 
 	fileNameString := "Filename: " + this.FileName + ".json"
 	runtime.DrawString(fileNameString, 1, (int(relCoods.X) + 32), int(relCoods.Y)+550, false, screen)
