@@ -19,7 +19,7 @@ var (
 	Car50Sprite []byte
 
 	//FONT
-	//go:embed font/font.png
+	//go:embed font/m6x11plus.ttf
 	OOBFont []byte
 	//go:embed font/font_hover.png
 	OOBFontHover []byte
