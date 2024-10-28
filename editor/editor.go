@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
 	"image/color"
@@ -284,8 +285,12 @@ func (e *Editor) Update() error {
 }
 
 func (e *Editor) Draw(screen *ebiten.Image) {
-	stringLength := (len("OoB Editor") * 20) / 2
-	runtime.DrawString("OoB Editor", 3, ((1920/3)/2)-stringLength, 10, false, screen)
+	f := &text.GoTextFace{
+		Source: runtime.OobFont,
+		Size:   52,
+	}
+	textW, _ := text.Measure("OoB Editor", f, 1)
+	runtime.DrawString("OoB Editor", 52, int((1920/2)-(textW/2)), 10, false, screen)
 
 	cnt := 0
 	row := 0
