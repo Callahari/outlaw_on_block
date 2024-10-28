@@ -9,6 +9,7 @@ import (
 	"image"
 	"log"
 	"math"
+	"outlaw_on_block/assetManager"
 	"outlaw_on_block/car"
 	"outlaw_on_block/editor"
 	"outlaw_on_block/player"
@@ -20,6 +21,7 @@ const (
 	GameScene_Menu GameScene = iota
 	GameScene_Play
 	GameScene_Editor
+	GameScene_AssetManager
 )
 
 type GameScene int
@@ -30,11 +32,13 @@ type Game struct {
 	TilesMap []*tiles.Tile
 	Scene    GameScene
 	Menu     struct {
-		PlayTriggered   bool
-		EditorTriggered bool
-		ExitTriggered   bool
+		PlayTriggered         bool
+		EditorTriggered       bool
+		ExitTriggered         bool
+		AssetManagerTriggered bool
 	}
-	Editor *editor.Editor
+	Editor        *editor.Editor
+	AssertManager *assetManager.AssetManager
 }
 
 func (g *Game) Update() error {
@@ -51,8 +55,9 @@ func (g *Game) Update() error {
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 		pointer := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
 		PlayButtonRect := image.Rect(12, 76, 89, 93)
-		EditorButtonRect := image.Rect(12, 101, 60, 116)
-		ExitButtonRect := image.Rect(12, 125, 87, 141)
+		AssetManagerButtonRect := image.Rect(12, 100, 134, 118)
+		EditorButtonRect := image.Rect(12, 123, 62, 143)
+		ExitButtonRect := image.Rect(12, 151, 91, 167)
 
 		if pointer.Overlaps(PlayButtonRect) {
 			g.Menu.PlayTriggered = true
@@ -83,6 +88,17 @@ func (g *Game) Update() error {
 		} else {
 			g.Menu.ExitTriggered = false
 		}
+		if pointer.Overlaps(AssetManagerButtonRect) {
+			g.Menu.AssetManagerTriggered = true
+			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+				if g.AssertManager == nil {
+					g.AssertManager = &assetManager.AssetManager{}
+				}
+				g.Scene = GameScene_AssetManager
+			}
+		} else {
+			g.Menu.AssetManagerTriggered = false
+		}
 	case GameScene_Play:
 		//player Update
 		g.Player.Update()
@@ -92,6 +108,8 @@ func (g *Game) Update() error {
 		}
 	case GameScene_Editor:
 		g.Editor.Update()
+	case GameScene_AssetManager:
+		g.AssertManager.Update()
 	}
 	return nil
 }
@@ -101,8 +119,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	case GameScene_Menu:
 		runtime.DrawString("Outlaw on Block", 52, 10, 10, false, screen)
 		runtime.DrawString("Auf gehts", 24, 10, 70, g.Menu.PlayTriggered, screen)
-		runtime.DrawString("Editor", 24, 10, 95, g.Menu.EditorTriggered, screen)
-		runtime.DrawString("Weg hier !", 24, 10, 120, g.Menu.ExitTriggered, screen)
+		runtime.DrawString("Asset Manager", 24, 10, 95, g.Menu.AssetManagerTriggered, screen)
+		runtime.DrawString("Editor", 24, 10, 120, g.Menu.EditorTriggered, screen)
+		runtime.DrawString("Weg hier !", 24, 10, 145, g.Menu.ExitTriggered, screen)
 	case GameScene_Play:
 		//DrawTiles
 		for _, t := range g.TilesMap {
@@ -123,6 +142,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	case GameScene_Editor:
 		g.Editor.Draw(screen)
+	case GameScene_AssetManager:
+		g.AssertManager.Draw(screen)
 	}
 
 	msg := fmt.Sprintf(`TPS: %0.2f

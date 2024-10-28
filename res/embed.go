@@ -27,4 +27,20 @@ var (
 	//UI elements
 	//go:embed ui/arrows.png
 	UIArrows []byte
+	//go:embed ui/flat/UI_Flat_Button01a_1.png
+	UIFlatButton01a1 []byte
+	//go:embed ui/flat/UI_Flat_Button01a_2.png
+	UIFlatButton01a2 []byte
+	//go:embed ui/flat/UI_Flat_Button01a_3.png
+	UIFlatButton01a3 []byte
+	//go:embed ui/flat/UI_Flat_InputField01a.png
+	UIFlatInputField01a []byte
+	//go:embed ui/flat/UI_Flat_Frame01a.png
+	UIFlatFrame01a []byte
+	//go:embed ui/flat/UI_Flat_ButtonCross01a.png
+	UIFlatButtonCross01a []byte
+	//go:embed ui/flat/UI_Flat_ButtonCheck01a.png
+	UIFlatButtonCheck01a []byte
+	//go:embed ui/flat/UI_Flat_Frame03a.png
+	UIFlatFrame03a []byte
 )
