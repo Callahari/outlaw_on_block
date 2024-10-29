@@ -14,25 +14,32 @@ import (
 	"math"
 	"os"
 	"outlaw_on_block/modals"
+	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
 	"outlaw_on_block/ui"
 	"path/filepath"
 )
 
+var (
+	payerMarker *ebiten.Image
+)
+
 type Editor struct {
-	Tiles       []*tiles.Tile
-	startTile   int
-	ArrowRight  string
-	ArrowLeft   string
-	Selected    *tiles.Tile
-	FineJustage bool
-	MapItems    []tiles.Tile
-	Modal       modals.IModal
-	Selection   []tiles.Tile
-	CopyMode    bool
-	DebugMode   bool
-	Camera      struct {
+	Tiles                 []*tiles.Tile
+	startTile             int
+	ArrowRight            string
+	ArrowLeft             string
+	Selected              *tiles.Tile
+	FineJustage           bool
+	MapItems              []tiles.Tile
+	Modal                 modals.IModal
+	Selection             []tiles.Tile
+	CopyMode              bool
+	DebugMode             bool
+	PlayerObject          *player.Player
+	SetPlayerPosBtnStatus runtime.FontStatus
+	Camera                struct {
 		Position struct {
 			X float64
 			Y float64
@@ -41,12 +48,24 @@ type Editor struct {
 	}
 }
 
+func init() {
+	t := ebiten.NewImage(64, 64)
+	t.Fill(color.Transparent)
+	m := ebiten.NewImage(21, 21)
+	m.Fill(color.RGBA{255, 0, 0, 255})
+	mOp := &ebiten.DrawImageOptions{}
+	mOp.GeoM.Translate(21, 21)
+	t.DrawImage(m, mOp)
+
+	payerMarker = t
+}
 func NewEditor() *Editor {
 	e := &Editor{}
 	e.startTile = 0
 	e.ArrowRight = "green"
 	e.ArrowLeft = "green"
 	e.Camera.ScrollSpeed = 5
+	e.PlayerObject = &player.Player{}
 	e.Selection = make([]tiles.Tile, 0)
 	_ = filepath.Walk("/home/callahari/Code/node-io.dev/outlaw_on_block/raw/gta2_tiles", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -85,6 +104,7 @@ func (e *Editor) Update() error {
 		if e.Modal.IsClosed() {
 			if e.Modal.GetTileMap() != nil {
 				e.MapItems = e.Modal.GetTileMap()
+				e.PlayerObject = e.Modal.GetPlayerObject()
 			}
 			e.Modal = nil
 			return nil
@@ -107,6 +127,31 @@ func (e *Editor) Update() error {
 	relCursorTrigger := image.Rect(relX, relY, relX+1, relY+1)
 	// 	vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
+	setPlayerPosBtnTrigger := image.Rect(300, 15, 457, 34)
+
+	//SetPlayerPos Button interaction
+	if cursorTrigger.In(setPlayerPosBtnTrigger) {
+		if e.SetPlayerPosBtnStatus != runtime.FONT_ACTIVE {
+			e.SetPlayerPosBtnStatus = runtime.FONT_HOVER
+		}
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			if e.SetPlayerPosBtnStatus == runtime.FONT_ACTIVE {
+				e.SetPlayerPosBtnStatus = runtime.FONT_HOVER
+			} else {
+				e.SetPlayerPosBtnStatus = runtime.FONT_ACTIVE
+				e.Selected = nil
+				for idx, t := range e.MapItems {
+					if t.Name == "playerPos" {
+						e.MapItems = append(e.MapItems[:idx], e.MapItems[idx+1:]...)
+					}
+				}
+			}
+		}
+	} else {
+		if e.SetPlayerPosBtnStatus != runtime.FONT_ACTIVE {
+			e.SetPlayerPosBtnStatus = runtime.FONT_NORMAL
+		}
+	}
 
 	//Try to enter Copy mode
 	if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyC) {
@@ -121,7 +166,7 @@ func (e *Editor) Update() error {
 		if e.MapItems == nil || len(e.MapItems) == 0 {
 			log.Println("TileMap is empty, nothing to save.")
 		} else {
-			m := &modals.EsaveMap{Name: "Foo", TileMap: e.MapItems}
+			m := &modals.EsaveMap{Name: "Foo", TileMap: e.MapItems, PlayerObject: e.PlayerObject}
 			e.Modal = m
 		}
 	}
@@ -215,6 +260,24 @@ func (e *Editor) Update() error {
 	//Click on map
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if cursorTrigger.In(mapRect) {
+			if e.SetPlayerPosBtnStatus == runtime.FONT_ACTIVE {
+				t := tiles.Tile{
+					ID:        uuid.NewString(),
+					Name:      "playerPos",
+					TileImage: payerMarker,
+					Pos: struct{ X, Y int }{
+						X: relX - 32,
+						Y: relY - 32,
+					},
+					Rotation:     0,
+					CollisionMap: nil,
+				}
+				e.MapItems = append(e.MapItems, t)
+				e.SetPlayerPosBtnStatus = runtime.FONT_NORMAL
+				e.PlayerObject.Position.X = float64(relX - 32)
+				e.PlayerObject.Position.Y = float64(relY - 32)
+				return nil
+			}
 			//Check if Teile already pleased.
 			isPlaced := false
 			tileIdx := -1
@@ -374,7 +437,18 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 		},
 		Size: 52,
 	})
-
+	runtime.DrawString("Set Player Position", e.SetPlayerPosBtnStatus, 300, 10, screen, &runtime.OOBFontOptions{
+		Colors: struct {
+			Normal color.Color
+			Hover  color.Color
+			Active color.Color
+		}{
+			Normal: color.White,
+			Hover:  color.RGBA{200, 200, 200, 255},
+			Active: color.RGBA{0, 0, 128, 255},
+		},
+		Size: 24,
+	})
 	//Draw map grid 64x64 px
 	for y := range 1024 {
 		vector.StrokeLine(screen, float32(runtime.ViewPort.X), float32(runtime.ViewPort.Y+(float64(y)*64)), float32(runtime.ViewPort.X+65536), float32(runtime.ViewPort.Y+(float64(y)*64)), 1, color.RGBA{0, 255, 0, 255}, false)
@@ -387,6 +461,12 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 		for _, s := range e.Selection {
 			vector.DrawFilledRect(screen, float32(s.Pos.X)+float32(runtime.ViewPort.X)-1, float32(s.Pos.Y)+float32(runtime.ViewPort.Y)-1, 66, 66, color.RGBA{255, 0, 255, 255}, false)
 		}
+	}
+	//draw player marker object
+	if e.SetPlayerPosBtnStatus == runtime.FONT_ACTIVE {
+		tOp := &ebiten.DrawImageOptions{}
+		tOp.GeoM.Translate(float64(currentMousePosX)-32, float64(currentMousePosY)-32)
+		screen.DrawImage(payerMarker, tOp)
 	}
 	//Draw if item selected
 	if e.Selected != nil && !e.FineJustage {

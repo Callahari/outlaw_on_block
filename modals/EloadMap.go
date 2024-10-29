@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"outlaw_on_block/databases"
 	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
@@ -18,12 +19,12 @@ import (
 )
 
 type EloadMap struct {
-	Name       string
-	TileMap    []tiles.Tile
-	Closed     bool
-	HoverFile  string
-	SavedFiles []string
+	Name         string
+	TileMap      []tiles.Tile
 	PlayerObject *player.Player
+	Closed       bool
+	HoverFile    string
+	SavedFiles   []string
 }
 
 func NewEloadMapModal(name string, tileMap []tiles.Tile) *EloadMap {
@@ -80,11 +81,11 @@ func (this *EloadMap) Update() error {
 			this.HoverFile = path
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 				//1. Read manifest
-				loadMap := []tiles.Tile{}
+				loadMap := &databases.SaveManifest{}
 				manifestAsBytes, _ := os.ReadFile(path + "/manifest.json")
 				json.Unmarshal(manifestAsBytes, &loadMap)
 				//2.Recreate ebiten images
-				for _, tile := range loadMap {
+				for _, tile := range loadMap.MapTiles {
 					imgAsByte, err := os.ReadFile(path + "/img/" + tile.ID + ".png")
 					if err != nil {
 						log.Printf("err: %v", err)
@@ -92,6 +93,7 @@ func (this *EloadMap) Update() error {
 					}
 					rawImg, _, _ := image.Decode(bytes.NewReader(imgAsByte))
 					tile.TileImage = ebiten.NewImageFromImage(rawImg)
+					this.PlayerObject = loadMap.PlayerObject
 					this.TileMap = append(this.TileMap, tile)
 				}
 				this.Closed = true

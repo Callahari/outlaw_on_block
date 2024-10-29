@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"outlaw_on_block/databases"
 	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
@@ -19,13 +20,13 @@ import (
 )
 
 type EsaveMap struct {
-	Name        string
-	InputStatus runtime.FontStatus
-	FileName    string
-	HoverSave   bool
-	TileMap     []tiles.Tile
-	Closed      bool
+	Name         string
+	InputStatus  runtime.FontStatus
+	FileName     string
+	HoverSave    bool
+	TileMap      []tiles.Tile
 	PlayerObject *player.Player
+	Closed       bool
 }
 
 func (this *EsaveMap) GetPlayerObject() *player.Player {
@@ -69,10 +70,12 @@ func (this *EsaveMap) Update() error {
 				png.Encode(f, img.TileImage)
 			}
 			//4. Write manifestfile
-			manifest := []tiles.Tile{}
+			manifest := databases.SaveManifest{}
+			manifest.SaveName = this.Name
+			manifest.PlayerObject = this.PlayerObject
 			for _, img := range this.TileMap {
 				img.TileImage = nil
-				manifest = append(manifest, img)
+				manifest.MapTiles = append(manifest.MapTiles, img)
 			}
 			manifestAsByte, err := json.Marshal(manifest)
 			if err != nil {
@@ -95,10 +98,8 @@ func (this *EsaveMap) Update() error {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 			if this.InputStatus == runtime.FONT_ACTIVE {
 				this.InputStatus = runtime.FONT_HOVER
-				log.Println("Set inactive")
 			} else {
 				this.InputStatus = runtime.FONT_ACTIVE
-				log.Println("Set active")
 			}
 		}
 	} else {
