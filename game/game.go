@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"image"
+	"image/color"
 	"log"
 	"math"
 	"outlaw_on_block/assetManager"
@@ -24,6 +25,10 @@ const (
 	GameScene_AssetManager
 )
 
+var (
+	menuItemTextOp *runtime.OOBFontOptions
+)
+
 type GameScene int
 
 type Game struct {
@@ -32,13 +37,27 @@ type Game struct {
 	TilesMap []*tiles.Tile
 	Scene    GameScene
 	Menu     struct {
-		PlayTriggered         bool
-		EditorTriggered       bool
-		ExitTriggered         bool
-		AssetManagerTriggered bool
+		PlayTriggered         runtime.FontStatus
+		EditorTriggered       runtime.FontStatus
+		ExitTriggered         runtime.FontStatus
+		AssetManagerTriggered runtime.FontStatus
 	}
 	Editor        *editor.Editor
 	AssertManager *assetManager.AssetManager
+}
+
+func init() {
+	menuItemTextOp = &runtime.OOBFontOptions{
+		Colors: struct {
+			Normal color.Color
+			Hover  color.Color
+			Active color.Color
+		}{
+			Normal: color.RGBA{255, 255, 255, 255},
+			Hover:  color.RGBA{128, 128, 128, 255},
+		},
+		Size: 24,
+	}
 }
 
 func (g *Game) Update() error {
@@ -60,16 +79,16 @@ func (g *Game) Update() error {
 		ExitButtonRect := image.Rect(12, 151, 91, 167)
 
 		if pointer.Overlaps(PlayButtonRect) {
-			g.Menu.PlayTriggered = true
+			g.Menu.PlayTriggered = runtime.FONT_HOVER
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 				g.Scene = GameScene_Play
 			}
 		} else {
-			g.Menu.PlayTriggered = false
+			g.Menu.PlayTriggered = runtime.FONT_NORMAL
 		}
 
 		if pointer.Overlaps(EditorButtonRect) {
-			g.Menu.EditorTriggered = true
+			g.Menu.EditorTriggered = runtime.FONT_HOVER
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 				if g.Editor == nil {
 					g.Editor = editor.NewEditor()
@@ -77,19 +96,19 @@ func (g *Game) Update() error {
 				g.Scene = GameScene_Editor
 			}
 		} else {
-			g.Menu.EditorTriggered = false
+			g.Menu.EditorTriggered = runtime.FONT_NORMAL
 		}
 
 		if pointer.Overlaps(ExitButtonRect) {
-			g.Menu.ExitTriggered = true
+			g.Menu.ExitTriggered = runtime.FONT_HOVER
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 				return errors.New("Exit")
 			}
 		} else {
-			g.Menu.ExitTriggered = false
+			g.Menu.ExitTriggered = runtime.FONT_NORMAL
 		}
 		if pointer.Overlaps(AssetManagerButtonRect) {
-			g.Menu.AssetManagerTriggered = true
+			g.Menu.AssetManagerTriggered = runtime.FONT_HOVER
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 				if g.AssertManager == nil {
 					g.AssertManager = &assetManager.AssetManager{}
@@ -97,7 +116,7 @@ func (g *Game) Update() error {
 				g.Scene = GameScene_AssetManager
 			}
 		} else {
-			g.Menu.AssetManagerTriggered = false
+			g.Menu.AssetManagerTriggered = runtime.FONT_NORMAL
 		}
 	case GameScene_Play:
 		//player Update
@@ -117,11 +136,20 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.Scene {
 	case GameScene_Menu:
-		runtime.DrawString("Outlaw on Block", 52, 10, 10, false, screen)
-		runtime.DrawString("Auf gehts", 24, 10, 70, g.Menu.PlayTriggered, screen)
-		runtime.DrawString("Asset Manager", 24, 10, 95, g.Menu.AssetManagerTriggered, screen)
-		runtime.DrawString("Editor", 24, 10, 120, g.Menu.EditorTriggered, screen)
-		runtime.DrawString("Weg hier !", 24, 10, 145, g.Menu.ExitTriggered, screen)
+		runtime.DrawString("Outlaw on Block", runtime.FONT_NORMAL, 10, 10, screen, &runtime.OOBFontOptions{
+			Colors: struct {
+				Normal color.Color
+				Hover  color.Color
+				Active color.Color
+			}{
+				Normal: color.RGBA{255, 255, 255, 255},
+			},
+			Size: 52,
+		})
+		runtime.DrawString("Auf gehts", g.Menu.PlayTriggered, 10, 70, screen, menuItemTextOp)
+		runtime.DrawString("Asset Manager", g.Menu.AssetManagerTriggered, 10, 95, screen, menuItemTextOp)
+		runtime.DrawString("Editor", g.Menu.EditorTriggered, 10, 120, screen, menuItemTextOp)
+		runtime.DrawString("Weg hier !", g.Menu.ExitTriggered, 10, 145, screen, menuItemTextOp)
 	case GameScene_Play:
 		//DrawTiles
 		for _, t := range g.TilesMap {
