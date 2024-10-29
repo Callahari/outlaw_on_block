@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 	"outlaw_on_block/databases"
+	"outlaw_on_block/player"
 	"outlaw_on_block/res"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
