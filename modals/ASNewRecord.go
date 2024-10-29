@@ -342,26 +342,26 @@ func (this *ASNewRecord) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64((newW / 2)), float64(newH/2))
 	screen.DrawImage(UIFrame, op)
 
-	runtime.DrawString("New Asset Record", 1, (newW/2)+25, (newH/2)+42, false, screen)
+	//runtime.DrawString("New Asset Record", 1, (newW/2)+25, (newH/2)+42, false, screen)
 	vector.StrokeLine(screen, float32(newW/2), float32(newH/2)+67, float32((newW/2)+newW), float32((newH/2)+67), 1, color.RGBA{0, 0, 0, 255}, false)
 
-	runtime.DrawString("Name    :", 1, (newW/2)+25, (newH/2)+100, false, screen)
+	//runtime.DrawString("Name    :", 1, (newW/2)+25, (newH/2)+100, false, screen)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(10, 1)
 	op.GeoM.Translate(float64(686), float64((newH/2)+95))
 	screen.DrawImage(UIInput, op)
 	//DrwarInputstring
-	runtime.DrawString(this.InputActive.Name.Input, 1, 686+10, ((newH/2)+95)+5, false, screen)
+	//runtime.DrawString(this.InputActive.Name.Input, 1, 686+10, ((newH/2)+95)+5, false, screen)
 
-	runtime.DrawString("Tags    :", 1, (newW/2)+25, (newH/2)+148, false, screen)
+	//runtime.DrawString("Tags    :", 1, (newW/2)+25, (newH/2)+148, false, screen)
 	op.GeoM.Translate(0, 48)
 	screen.DrawImage(UIInput, op)
-	runtime.DrawString(this.InputActive.Tags.Input, 1, 686+10, ((newH/2)+95)+5+48, false, screen)
+	//.DrawString(this.InputActive.Tags.Input, 1, 686+10, ((newH/2)+95)+5+48, false, screen)
 
-	runtime.DrawString("Filename:", 1, (newW/2)+25, (newH/2)+196, false, screen)
+	//runtime.DrawString("Filename:", 1, (newW/2)+25, (newH/2)+196, false, screen)
 	op.GeoM.Translate(0, 48)
 	screen.DrawImage(UIInput, op)
-	runtime.DrawString(this.InputActive.FileName.Input, 1, 686+10, ((newH/2)+95)+5+48+48, false, screen)
+	//runtime.DrawString(this.InputActive.FileName.Input, 1, 686+10, ((newH/2)+95)+5+48+48, false, screen)
 
 	for _, btn := range this.Buttons {
 		op = &ebiten.DrawImageOptions{}
@@ -384,7 +384,7 @@ func (this *ASNewRecord) Draw(screen *ebiten.Image) {
 				btn.Position.Y+8)
 			screen.DrawImage(btn.Icon, op)
 		}
-		runtime.DrawString(btn.Label, 1, int(btn.Position.X+5), int(btn.Position.Y)+5, false, screen)
+		//runtime.DrawString(btn.Label, 1, int(btn.Position.X+5), int(btn.Position.Y)+5, false, screen)
 	}
 
 	//Debug

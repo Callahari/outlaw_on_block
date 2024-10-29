@@ -12,7 +12,6 @@ import (
 	"image/color"
 	"outlaw_on_block/modals"
 	"outlaw_on_block/res"
-	"outlaw_on_block/runtime"
 	"strings"
 )
 
@@ -114,17 +113,17 @@ func (this *AssetManager) Update() error {
 }
 
 func (this *AssetManager) Draw(screen *ebiten.Image) {
-	runtime.DrawString("Asset Manager", 1, 8, 8, false, screen)
+	//runtime.DrawString("Asset Manager", 1, 8, 8, false, screen)
 	//Define Areas
 	//search bar
 	vector.DrawFilledRect(screen, 8, 40+32, 1920-16, 1, color.RGBA{128, 128, 128, 255}, false)
 	//search input
-	runtime.DrawString("Suche: ", 1, 8, 45, false, screen)
+	//runtime.DrawString("Suche: ", 1, 8, 45, false, screen)
 	op := ebiten.DrawImageOptions{}
 	op.GeoM.Scale(16, 1)
 	op.GeoM.Translate(128, 42)
 	screen.DrawImage(InputField, &op)
-	runtime.DrawString(this.Search.SearchText, 1, 140, 45, false, screen)
+	//runtime.DrawString(this.Search.SearchText, 1, 140, 45, false, screen)
 
 	//New DB entry
 	//vector.DrawFilledRect(screen, 8, 32+32+16, 1920-16, 32, color.RGBA{0, 128, 0, 255}, false)
@@ -142,7 +141,7 @@ func (this *AssetManager) Draw(screen *ebiten.Image) {
 		screen.DrawImage(Button, &op)
 	}
 
-	runtime.DrawString("New Record", 1, 15, 87, false, screen)
+	//runtime.DrawString("New Record", 1, 15, 87, false, screen)
 
 	//Database table
 	vector.DrawFilledRect(screen, 8, 32+32+16+32+8, 1920-16, 1020-(32+8+32), color.RGBA{0, 0, 128, 255}, false)
