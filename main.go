@@ -13,7 +13,6 @@ import (
 	"outlaw_on_block/player"
 	"outlaw_on_block/res"
 	"outlaw_on_block/runtime"
-	"outlaw_on_block/tiles"
 )
 
 const (
@@ -26,10 +25,10 @@ func main() {
 	ebiten.SetWindowTitle("Outlaw on Block")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 
-	timg, _, _ := image.Decode(bytes.NewReader(res.Tile0Sprite))
-	timg1, _, _ := image.Decode(bytes.NewReader(res.Tile276Sprite))
+	//timg, _, _ := image.Decode(bytes.NewReader(res.Tile0Sprite))
+	//timg1, _, _ := image.Decode(bytes.NewReader(res.Tile276Sprite))
 
-	tMap := []*tiles.Tile{}
+	/*tMap := []*tiles.Tile{}
 	t := &tiles.Tile{
 		TileImage:    ebiten.NewImageFromImage(timg),
 		Pos:          struct{ X, Y int }{100, 100},
@@ -58,12 +57,12 @@ func main() {
 		Rotation:     180,
 		CollisionMap: nil,
 	}
-	tMap = append(tMap, t)
+	tMap = append(tMap, t)*/
 
 	game := &game.Game{}
 	p := player.NewPlayer()
 	game.Player = p
-	game.TilesMap = tMap
+	//game.TilesMap = tMap
 
 	cars := []*car.Car{}
 	taxiSrc, _, _ := image.Decode(bytes.NewReader(res.Car50Sprite))

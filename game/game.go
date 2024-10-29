@@ -13,6 +13,7 @@ import (
 	"outlaw_on_block/assetManager"
 	"outlaw_on_block/car"
 	"outlaw_on_block/editor"
+	"outlaw_on_block/modals"
 	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
@@ -34,8 +35,9 @@ type GameScene int
 type Game struct {
 	Player   *player.Player
 	Cars     []*car.Car
-	TilesMap []*tiles.Tile
+	TilesMap []tiles.Tile
 	Scene    GameScene
+	Modal    modals.IModal
 	Menu     struct {
 		PlayTriggered         runtime.FontStatus
 		EditorTriggered       runtime.FontStatus
@@ -69,6 +71,31 @@ func (g *Game) Update() error {
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 		log.Println(currentMousePosX, currentMousePosY)
 	}
+
+	if g.Modal != nil {
+		if g.Modal.IsClosed() {
+			if g.Modal.GetTileMap() != nil {
+				g.TilesMap = g.Modal.GetTileMap()
+				g.Player = player.NewPlayer()
+				g.Player.Position.X = g.Modal.GetPlayerObject().Position.X
+				g.Player.Position.Y = g.Modal.GetPlayerObject().Position.Y
+				for idx, t := range g.TilesMap {
+					if t.Name == "playerPos" {
+						g.TilesMap = append(g.TilesMap[:idx], g.TilesMap[idx+1:]...)
+					}
+				}
+				g.Scene = GameScene_Play
+			}
+			g.Modal = nil
+			return nil
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			g.Modal = nil
+			return nil
+		}
+		return g.Modal.Update()
+	}
+
 	switch g.Scene {
 	case GameScene_Menu:
 		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
@@ -81,7 +108,8 @@ func (g *Game) Update() error {
 		if pointer.Overlaps(PlayButtonRect) {
 			g.Menu.PlayTriggered = runtime.FONT_HOVER
 			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-				g.Scene = GameScene_Play
+				//g.Scene = GameScene_Play
+				g.Modal = modals.NewEloadMapModal("", g.TilesMap)
 			}
 		} else {
 			g.Menu.PlayTriggered = runtime.FONT_NORMAL
@@ -134,6 +162,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+
 	switch g.Scene {
 	case GameScene_Menu:
 		runtime.DrawString("Outlaw on Block", runtime.FONT_NORMAL, 10, 10, screen, &runtime.OOBFontOptions{
@@ -172,6 +201,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.Editor.Draw(screen)
 	case GameScene_AssetManager:
 		g.AssertManager.Draw(screen)
+	}
+
+	//Draw Modal
+	if g.Modal != nil {
+		g.Modal.Draw(screen)
 	}
 
 	msg := fmt.Sprintf(`TPS: %0.2f
