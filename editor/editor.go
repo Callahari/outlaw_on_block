@@ -29,6 +29,9 @@ type Editor struct {
 	FineJustage bool
 	MapItems    []tiles.Tile
 	Modal       modals.IModal
+	Selection   []tiles.Tile
+	CopyMode    bool
+	DebugMode   bool
 	Camera      struct {
 		Position struct {
 			X float64
@@ -44,6 +47,7 @@ func NewEditor() *Editor {
 	e.ArrowRight = "green"
 	e.ArrowLeft = "green"
 	e.Camera.ScrollSpeed = 5
+	e.Selection = make([]tiles.Tile, 0)
 	_ = filepath.Walk("/home/callahari/Code/node-io.dev/outlaw_on_block/raw/gta2_tiles", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -74,6 +78,9 @@ func NewEditor() *Editor {
 }
 
 func (e *Editor) Update() error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
+		e.DebugMode = !e.DebugMode
+	}
 	if e.Modal != nil {
 		if e.Modal.IsClosed() {
 			if e.Modal.GetTileMap() != nil {
@@ -91,9 +98,22 @@ func (e *Editor) Update() error {
 	runtime.ViewPort.X = 1654/2 + e.Camera.Position.X
 	runtime.ViewPort.Y = 979/2 + e.Camera.Position.Y
 	currentMousePosX, currentMousePosY := ebiten.CursorPosition()
+	mouseMapOffsetX := currentMousePosX - 232
+	mouseMapOffsetY := currentMousePosY - 58
+
+	relX := mouseMapOffsetX - int(e.Camera.Position.X) - 598
+	relY := mouseMapOffsetY - int(e.Camera.Position.Y) - 425
 	cursorTrigger := image.Rect(currentMousePosX, currentMousePosY, currentMousePosX+1, currentMousePosY+1)
+	relCursorTrigger := image.Rect(relX, relY, relX+1, relY+1)
 	// 	vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
 	mapRect := image.Rect(261, 96, 1654+261, 979+96)
+
+	//Try to enter Copy mode
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyC) {
+		if len(e.Selection) > 0 {
+			e.CopyMode = !e.CopyMode
+		}
+	}
 
 	//Click on Save 	runtime.DrawString("Save Map", 1, 1700, 10, false, screen)
 	saveBtnRect := image.Rect(1700, 10, 1860, 32)
@@ -195,48 +215,54 @@ func (e *Editor) Update() error {
 	//Click on map
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if cursorTrigger.In(mapRect) {
+			//Check if Teile already pleased.
+			isPlaced := false
+			tileIdx := -1
+			tile := tiles.Tile{}
+			for idx, t := range e.MapItems {
+				trigger := image.Rect(t.Pos.X, t.Pos.Y, t.Pos.X+64, t.Pos.Y+64)
+				if relCursorTrigger.In(trigger) {
+					isPlaced = true
+					tileIdx = idx
+					tile = t
+					log.Printf("Tile already placed: %v\n", t.Name)
+					break
+				}
+			}
 			if ebiten.IsKeyPressed(ebiten.KeyControl) {
-				log.Println("Mouse Clicked on map with control")
-				for _, t := range e.MapItems {
-					triggerRect := image.Rect(t.Pos.X+int(runtime.ViewPort.X), t.Pos.Y+int(runtime.ViewPort.Y), (t.Pos.X+int(runtime.ViewPort.X))+64, (t.Pos.Y+int(runtime.ViewPort.Y))+64)
-					if cursorTrigger.In(triggerRect) {
-						if e.Selected == nil {
-							log.Println("Fine Justage from Tile")
-							e.Selected = &t
-							e.FineJustage = true
-							return nil
+				//Add Tile to Selection
+				if isPlaced {
+					onSelection := false
+					for idx, t := range e.Selection {
+						trigger := image.Rect(t.Pos.X, t.Pos.Y, t.Pos.X+64, t.Pos.Y+64)
+						if relCursorTrigger.In(trigger) {
+							e.Selection = append(e.Selection[:idx], e.Selection[idx+1:]...)
+							onSelection = true
+							break
 						}
 					}
-				}
-				return nil
-			}
-			log.Println("Mouse Clicked on map")
-			if e.Selected != nil {
-				mouseMapOffsetX := currentMousePosX - 261
-				mouseMapOffsetY := currentMousePosY - 96
-				log.Printf("mouseMapOffsetX: %v; mouseMapOffsetY: %v\n", mouseMapOffsetX, mouseMapOffsetY)
-				mapTile := e.Selected
-				mapTile.Pos.X = mouseMapOffsetX - int(e.Camera.Position.X) - 598
-				mapTile.Pos.Y = mouseMapOffsetY - int(e.Camera.Position.Y) - 425
-				e.MapItems = append(e.MapItems, *mapTile)
-				log.Printf("place MapItem: %v; Pos: %v\n", mapTile, mapTile.Pos)
-				log.Printf("cursor.pos: %v %v\n", currentMousePosX, currentMousePosY)
-				log.Printf("runtime.ViewPort: %v\n", runtime.ViewPort)
-				log.Printf("camera.pos: %v\n", e.Camera.Position)
-				e.Selected = nil
-				return nil
-			} else {
-				//Grep again
-				for idx, t := range e.MapItems {
-					triggerRect := image.Rect(t.Pos.X+int(runtime.ViewPort.X), t.Pos.Y+int(runtime.ViewPort.Y), (t.Pos.X+int(runtime.ViewPort.X))+64, (t.Pos.Y+int(runtime.ViewPort.Y))+64)
-					if cursorTrigger.In(triggerRect) {
-						e.Selected = &t
-						e.MapItems = append(e.MapItems[:idx], e.MapItems[idx+1:]...)
-						break
+					if !onSelection {
+						e.Selection = append(e.Selection, tile)
 					}
 				}
+				return nil
 			}
-			return nil
+			log.Printf("isPlaced: %v\n", isPlaced)
+			if e.Selected != nil {
+				log.Printf("rel.X: %v; rel.Y: %v\n", relX, relY)
+				log.Printf("tile.X: %v; tile.Y: %v\n", relX/64, relY/64)
+				e.Selected.Pos.X = int(relX/64) * 64
+				e.Selected.Pos.Y = int(relY/64) * 64
+
+				e.MapItems = append(e.MapItems, *e.Selected)
+				//e.Selected = nil
+
+				return nil
+			} else {
+				if isPlaced {
+					e.MapItems = append(e.MapItems[:tileIdx], e.MapItems[tileIdx+1:]...)
+				}
+			}
 		}
 	}
 	//Rotate tile
@@ -283,15 +309,7 @@ func (e *Editor) Update() error {
 	}
 	return nil
 }
-
-func (e *Editor) Draw(screen *ebiten.Image) {
-	f := &text.GoTextFace{
-		Source: runtime.OobFont,
-		Size:   52,
-	}
-	textW, _ := text.Measure("OoB Editor", f, 1)
-	runtime.DrawString("OoB Editor", 52, int((1920/2)-(textW/2)), 10, false, screen)
-
+func (e *Editor) drawTileMenu(screen *ebiten.Image) {
 	cnt := 0
 	row := 0
 	topOffset := 8
@@ -338,13 +356,43 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	op.GeoM.Scale(3, 3)
 	op.GeoM.Translate(228, 995)
 	screen.DrawImage(aL, op)
+}
+func (e *Editor) Draw(screen *ebiten.Image) {
+	currentMousePosX, currentMousePosY := ebiten.CursorPosition()
+	f := &text.GoTextFace{
+		Source: runtime.OobFont,
+		Size:   52,
+	}
+	textW, _ := text.Measure("OoB Editor", f, 1)
+	runtime.DrawString("OoB Editor", runtime.FONT_NORMAL, int((1920/2)-(textW/2)), 10, screen, &runtime.OOBFontOptions{
+		Colors: struct {
+			Normal color.Color
+			Hover  color.Color
+			Active color.Color
+		}{
+			Normal: color.RGBA{255, 255, 255, 255},
+		},
+		Size: 52,
+	})
 
+	//Draw map grid 64x64 px
+	for y := range 1024 {
+		vector.StrokeLine(screen, float32(runtime.ViewPort.X), float32(runtime.ViewPort.Y+(float64(y)*64)), float32(runtime.ViewPort.X+65536), float32(runtime.ViewPort.Y+(float64(y)*64)), 1, color.RGBA{0, 255, 0, 255}, false)
+	}
+	for x := range 1024 {
+		vector.StrokeLine(screen, float32(runtime.ViewPort.X+(float64(x)*64)), float32(runtime.ViewPort.Y), float32(runtime.ViewPort.X+(float64(x)*64)), float32(runtime.ViewPort.Y+65536), 1, color.RGBA{0, 255, 0, 255}, false)
+	}
+	//Draw Selected marker
+	if len(e.Selection) > 0 {
+		for _, s := range e.Selection {
+			vector.DrawFilledRect(screen, float32(s.Pos.X)+float32(runtime.ViewPort.X)-1, float32(s.Pos.Y)+float32(runtime.ViewPort.Y)-1, 66, 66, color.RGBA{255, 0, 255, 255}, false)
+		}
+	}
 	//Draw if item selected
 	if e.Selected != nil && !e.FineJustage {
 		w, h := float64(e.Selected.TileImage.Bounds().Size().X), float64(e.Selected.TileImage.Bounds().Size().Y)
 
 		op := &ebiten.DrawImageOptions{}
-		currentMousePosX, currentMousePosY := ebiten.CursorPosition()
 
 		op.GeoM.Translate(-w/2, -h/2)
 		op.GeoM.Rotate(float64(e.Selected.Rotation%360.0) * 2 * math.Pi / 360)
@@ -354,6 +402,7 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 		op.ColorScale.ScaleAlpha(0.5)
 		screen.DrawImage(e.Selected.TileImage, op)
 	}
+
 	//Draw MapTiles
 	for _, m := range e.MapItems {
 		w, h := float64(m.TileImage.Bounds().Size().X), float64(m.TileImage.Bounds().Size().Y)
@@ -370,32 +419,51 @@ func (e *Editor) Draw(screen *ebiten.Image) {
 	}
 
 	//Draw Save Map
-	runtime.DrawString("Save Map", 1, 1700, 10, false, screen)
-	runtime.DrawString("Load Map", 1, 1700, 35, false, screen)
+	btnFontOp := &runtime.OOBFontOptions{
+		Colors: struct {
+			Normal color.Color
+			Hover  color.Color
+			Active color.Color
+		}{
+			Normal: color.RGBA{255, 255, 255, 255},
+			Hover:  color.RGBA{200, 200, 200, 255},
+		},
+		Size: 16,
+	}
+	runtime.DrawString("Save Map", runtime.FONT_NORMAL, 1700, 10, screen, btnFontOp)
+	runtime.DrawString("Load Map", runtime.FONT_NORMAL, 1700, 35, screen, btnFontOp)
 	//map
 	//vector.DrawFilledRect(screen, 261, 96, 1654, 979, color.RGBA{0, 255, 0, 2}, true)
+
+	e.drawTileMenu(screen)
 
 	//Draw Modal
 	if e.Modal != nil {
 		e.Modal.Draw(screen)
 	}
 
-	//Debug
-	msg := fmt.Sprintf("camera.pos: %v; camera.speed: %.2f", e.Camera.Position, e.Camera.ScrollSpeed)
-	ebitenutil.DebugPrintAt(screen, msg, 0, 32)
-	msg = fmt.Sprintf("runtime.viewport: %v", runtime.ViewPort)
-	ebitenutil.DebugPrintAt(screen, msg, 0, 43)
-	mX, mY := ebiten.CursorPosition()
-	msg = fmt.Sprintf("cursor.pos: %v %v", mX, mY)
-	ebitenutil.DebugPrintAt(screen, msg, 0, 54)
-	msg = fmt.Sprintf("fineMode: %v", e.FineJustage)
-	ebitenutil.DebugPrintAt(screen, msg, 0, 65)
+	if e.DebugMode {
+		//Debug
+		msg := fmt.Sprintf("camera.pos: %v; camera.speed: %.2f", e.Camera.Position, e.Camera.ScrollSpeed)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 32)
+		msg = fmt.Sprintf("runtime.viewport: %v", runtime.ViewPort)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 43)
+		mX, mY := ebiten.CursorPosition()
+		msg = fmt.Sprintf("cursor.pos: %v %v", mX, mY)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 54)
+		msg = fmt.Sprintf("fineMode: %v", e.FineJustage)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 65)
+		/*msg = fmt.Sprintf("selection: %v", e.Selection)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 76)
+		msg = fmt.Sprintf("copyMode: %v", e.CopyMode)
+		ebitenutil.DebugPrintAt(screen, msg, 0, 87)*/
 
-	yPos := 76
-	for idx, m := range e.MapItems {
-		msg := fmt.Sprintf("MapItem: %v; Pos: %v", m, m.Pos)
-		ebitenutil.DebugPrintAt(screen, msg, 0, yPos+idx)
-		yPos += 11
+		yPos := 76
+		for idx, m := range e.MapItems {
+			msg := fmt.Sprintf("MapItem: %v; Pos: %v", m, m.Pos)
+			ebitenutil.DebugPrintAt(screen, msg, 0, yPos+idx)
+			yPos += 11
+		}
 	}
 }
 func (e *Editor) Layout(outsideWidth, outsideHeight int) (int, int) {
