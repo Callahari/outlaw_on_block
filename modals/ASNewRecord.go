@@ -88,6 +88,9 @@ type ASNewRecord struct {
 	}
 }
 
+func (this *ASNewRecord) GetPlayerObject() *player.Player {
+	return nil
+}
 func (this *ASNewRecord) GetTileMap() []tiles.Tile {
 	return nil
 }
