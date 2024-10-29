@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
 	"outlaw_on_block/ui"
@@ -24,8 +25,12 @@ type EsaveMap struct {
 	HoverSave   bool
 	TileMap     []tiles.Tile
 	Closed      bool
+	PlayerObject *player.Player
 }
 
+func (this *EsaveMap) GetPlayerObject() *player.Player {
+	return nil
+}
 func (this *EsaveMap) GetTileMap() []tiles.Tile {
 	return this.TileMap
 }

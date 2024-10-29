@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"outlaw_on_block/player"
 	"outlaw_on_block/runtime"
 	"outlaw_on_block/tiles"
 	"path/filepath"
@@ -22,6 +23,7 @@ type EloadMap struct {
 	Closed     bool
 	HoverFile  string
 	SavedFiles []string
+	PlayerObject *player.Player
 }
 
 func NewEloadMapModal(name string, tileMap []tiles.Tile) *EloadMap {
@@ -42,6 +44,10 @@ func NewEloadMapModal(name string, tileMap []tiles.Tile) *EloadMap {
 		return nil
 	})
 	return e
+}
+
+func (this *EloadMap) GetPlayerObject() *player.Player {
+	return this.PlayerObject
 }
 
 func (this *EloadMap) GetTileMap() []tiles.Tile {
