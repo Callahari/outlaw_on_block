@@ -31,7 +31,7 @@ func NewEloadMapModal(name string, tileMap []tiles.Tile) *EloadMap {
 	e.Closed = false
 
 	//Lookup saved Files
-	_ = filepath.Walk("save", func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(runtime.OOBUserDir+"/OOB/save", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -107,13 +107,22 @@ func (this *EloadMap) Draw(screen *ebiten.Image) {
 	}
 
 	vector.DrawFilledRect(screen, relCoods.X, relCoods.Y, 800, 600, color.RGBA{128, 128, 128, 255}, false)
-	runtime.DrawString("Load Map", 1, (int(relCoods.X)+400)-(5*20), int(relCoods.Y)+8, false, screen)
+	runtime.DrawString("Load Map", runtime.FONT_NORMAL, (int(relCoods.X)+400)-(5*20), int(relCoods.Y)+8, screen, &runtime.OOBFontOptions{
+		Colors: struct {
+			Normal color.Color
+			Hover  color.Color
+			Active color.Color
+		}{
+			Normal: color.RGBA{255, 255, 255, 255},
+		},
+		Size: 52,
+	})
 
 	for idx, path := range this.SavedFiles {
 		if path == this.HoverFile {
-			runtime.DrawString(path, 1, (int(relCoods.X) + 32), (int(relCoods.Y)+50)+(idx*32), true, screen)
+			runtime.DrawString(path, runtime.FONT_NORMAL, (int(relCoods.X) + 32), (int(relCoods.Y)+50)+(idx*32), screen, nil)
 		} else {
-			runtime.DrawString(path, 1, (int(relCoods.X) + 32), (int(relCoods.Y)+50)+(idx*32), false, screen)
+			runtime.DrawString(path, runtime.FONT_NORMAL, (int(relCoods.X) + 32), (int(relCoods.Y)+50)+(idx*32), screen, nil)
 		}
 	}
 }
