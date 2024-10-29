@@ -1,0 +1,1 @@
+This Project is not a GTA2 clone! It is just a hobby project to see what I can create with Ebiten Engine (https://ebitengine.org/). 
